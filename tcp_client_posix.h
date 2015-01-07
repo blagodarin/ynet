@@ -1,6 +1,6 @@
 #include <string>
 
-#include "client.h"
+#include "ynet.h"
 
 namespace ynet
 {
@@ -11,7 +11,7 @@ namespace ynet
 		const Socket InvalidSocket = -1;
 
 		void close(Socket socket);
-		Socket connect(const std::string& host, const std::string& port, ClientConnection& connection);
+		Socket connect(const std::string& host, const std::string& port, Link& link);
 		size_t recv(Socket socket, void* data, size_t size);
 		bool send(Socket socket, const void* data, size_t size);
 		void shutdown(Socket socket);

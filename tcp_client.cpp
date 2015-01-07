@@ -20,15 +20,6 @@ namespace ynet
 		close();
 	}
 
-	bool TcpClient::open()
-	{
-		if (_open || _port < 0)
-			return false;
-		_open = true;
-		_thread = std::thread(std::bind(&TcpClient::run, this));
-		return true;
-	}
-
 	void TcpClient::close()
 	{
 		// TODO: Fix closing from the client thread.
@@ -64,22 +55,21 @@ namespace ynet
 		return true;
 	}
 
-	std::string TcpClient::remote_host() const
+	bool TcpClient::start()
 	{
-		return _host;
-	}
-
-	int TcpClient::remote_port() const
-	{
-		return _port;
+		if (_open || _port < 0)
+			return false;
+		_open = true;
+		_thread = std::thread(std::bind(&TcpClient::run, this));
+		return true;
 	}
 
 	void TcpClient::run()
 	{
-		ClientConnection connection;
+		Link link;
 		for (bool initial = true; ; )
 		{
-			const auto socket = TcpClientBackend::connect(_host, _port_string, connection);
+			const auto socket = TcpClientBackend::connect(_host, _port_string, link);
 			if (socket != TcpClientBackend::InvalidSocket)
 			{
 				initial = false;
@@ -92,25 +82,25 @@ namespace ynet
 					}
 					_socket = socket;
 				}
-				_callback.on_connect(*this, connection);
+				_callback.on_connected(link, *this);
 				for (;;)
 				{
 					const size_t size = TcpClientBackend::recv(_socket, _buffer.data(), _buffer.size());
 					if (size == 0)
 						break;
-					_callback.on_receive(*this, connection, _buffer.data(), size);
+					_callback.on_received(link, _buffer.data(), size, *this);
 				}
 				{
 					std::lock_guard<std::mutex> lock(_mutex);
 					TcpClientBackend::close(_socket);
 					_socket = TcpClientBackend::InvalidSocket;
 				}
-				_callback.on_disconnect(*this, connection);
+				_callback.on_disconnected(link);
 			}
 			else if (initial)
 			{
 				initial = false;
-				_callback.on_refuse(*this);
+				_callback.on_refused(_host, _port);
 			}
 
 			std::unique_lock<std::mutex> lock(_mutex);

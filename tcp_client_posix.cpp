@@ -1,7 +1,5 @@
 #include "tcp_client_posix.h"
 
-#include "client.h"
-
 #include <cassert>
 #include <cstring>
 
@@ -47,7 +45,7 @@ namespace ynet
 			::close(socket);
 		}
 
-		Socket connect(const std::string& host, const std::string& port, ClientConnection& connection)
+		Socket connect(const std::string& host, const std::string& port, Link& link)
 		{
 			::addrinfo* addrinfos = nullptr;
 			{
@@ -65,13 +63,13 @@ namespace ynet
 				socket = ::socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
 				if (socket == InvalidSocket)
 					continue;
-				if (convert(*reinterpret_cast<const ::sockaddr_storage*>(addrinfo->ai_addr), connection.remote_address, connection.remote_port)
+				if (convert(*reinterpret_cast<const ::sockaddr_storage*>(addrinfo->ai_addr), link.remote_address, link.remote_port)
 					&& ::connect(socket, addrinfo->ai_addr, addrinfo->ai_addrlen) != -1)
 				{
 					::sockaddr_storage sockaddr;
 					size_t sockaddr_size = sizeof sockaddr;
 					if (::getsockname(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size) != -1
-						&& convert(sockaddr, connection.local_address, connection.local_port))
+						&& convert(sockaddr, link.local_address, link.local_port))
 					{
 						// TODO: Keep-alive.
 						break;

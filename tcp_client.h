@@ -1,5 +1,3 @@
-#include "client.h"
-
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -15,11 +13,12 @@ namespace ynet
 		TcpClient(ClientCallback& callback, const std::string& host, int port);
 		~TcpClient() override;
 
-		bool open() override;
+		// Socket
 		void close() override;
 		bool send(const void* data, size_t size) override;
-		std::string remote_host() const override;
-		int remote_port() const override;
+
+		// Client
+		bool start() override;
 
 	private:
 

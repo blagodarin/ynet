@@ -4,7 +4,7 @@
 
 #include <thread>
 
-#include "client.h"
+#include "ynet.h"
 
 namespace
 {
@@ -25,7 +25,7 @@ namespace
 			{
 				const auto n = static_cast<int>(buffer[i]);
 				std::cout << std::setw(2) << n << ' ';
-				if (n < 32 || n >127)
+				if (n < 32 || n > 127)
 					buffer[i] = '.';
 			}
 			std::cout << std::setfill(' ') << std::setw(2 + (line_size - part_size) * 3) << ' ';
@@ -44,7 +44,7 @@ public:
 		: _client(ynet::Client::create(*this, host, port))
 	{
 		std::cout << "Started" << std::endl;
-		_client->open();
+		_client->start();
 	}
 
 	~Client() override
@@ -55,30 +55,29 @@ public:
 
 private:
 
-	void on_connect(ynet::Client& client, const ynet::ClientConnection& connection) override
+	void on_connected(const ynet::Link& link, ynet::Socket& socket) override
 	{
-		std::cout << "Connected to " << connection.remote_address << ":" << connection.remote_port
-			<< " (as " << connection.local_address << ":" << connection.local_port << ")" << std::endl;
-		//std::this_thread::sleep_for(std::chrono::seconds(5));
-		client.send("GET / HTTP/1.1\r\n\r\n", 18);
+		std::cout << "Connected to " << link.remote_address << ":" << link.remote_port
+			<< " (as " << link.local_address << ":" << link.local_port << ")" << std::endl;
+		socket.send("GET / HTTP/1.1\r\n\r\n", 18);
 	}
 
-	void on_disconnect(const ynet::Client&, const ynet::ClientConnection& connection) override
+	void on_disconnected(const ynet::Link& link) override
 	{
-		std::cout << "Disconnected from " << connection.remote_address << ":" << connection.remote_port
-			<< " (as " << connection.local_address << ":" << connection.local_port << ")" << std::endl;
+		std::cout << "Disconnected from " << link.remote_address << ":" << link.remote_port
+			<< " (as " << link.local_address << ":" << link.local_port << ")" << std::endl;
 	}
 
-	void on_receive(ynet::Client&, const ynet::ClientConnection& connection, const void* data, size_t size) override
+	void on_received(const ynet::Link& link, const void* data, size_t size, ynet::Socket&) override
 	{
-		std::cout << "Received " << size << " bytes from " << connection.remote_address << ":" << connection.remote_port
-			<< " (as " << connection.local_address << ":" << connection.local_port << ")" << std::endl;
+		std::cout << "Received " << size << " bytes from " << link.remote_address << ":" << link.remote_port
+			<< " (as " << link.local_address << ":" << link.local_port << ")" << std::endl;
 		::dump(static_cast<const char*>(data), size);
 	}
 
-	void on_refuse(const ynet::Client& client) override
+	void on_refused(const std::string& host, int port) override
 	{
-		std::cout << "Connection to " << client.remote_host() << ":" << client.remote_port() << " failed" << std::endl;
+		std::cout << "Connection to " << host << ":" << port << " failed" << std::endl;
 	}
 
 private:
