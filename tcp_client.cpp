@@ -86,7 +86,7 @@ namespace ynet
 				_callback.on_connected(link, *this);
 				for (;;)
 				{
-					const size_t size = TcpBackend::recv(_socket, _buffer.data(), _buffer.size());
+					const size_t size = TcpBackend::recv(_socket, _buffer.data(), _buffer.size(), nullptr);
 					if (size == 0)
 						break;
 					_callback.on_received(link, _buffer.data(), size, *this);

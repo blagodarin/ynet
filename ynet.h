@@ -95,6 +95,9 @@ namespace ynet
 
 		//!
 		virtual void on_received(const Link& link, const void* data, size_t size, Socket& socket) = 0;
+
+		//!
+		virtual void on_stopped(const Link& link);
 	};
 
 	//!

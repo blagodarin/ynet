@@ -5,6 +5,7 @@
 
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <poll.h>
 #include <unistd.h>
 
 namespace ynet
@@ -40,21 +41,6 @@ namespace ynet
 
 	namespace TcpBackend
 	{
-		Socket accept(Socket socket, std::string& address, int& port)
-		{
-			::sockaddr_storage sockaddr;
-			size_t sockaddr_size = sizeof sockaddr;
-			Socket peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
-			if (peer == InvalidSocket)
-				return InvalidSocket;
-			if (!convert(sockaddr, address, port))
-			{
-				::close(peer);
-				return InvalidSocket;
-			}
-			return peer;
-		}
-
 		void close(Socket socket)
 		{
 			::close(socket);
@@ -90,7 +76,7 @@ namespace ynet
 						break;
 					}
 				}
-				::close(socket);
+				close(socket);
 			}
 			::freeaddrinfo(addrinfos);
 			return socket;
@@ -110,18 +96,29 @@ namespace ynet
 					if (::bind(socket, reinterpret_cast<::sockaddr*>(&sockaddr), sizeof sockaddr) == 0
 						&& ::listen(socket, 16) == 0)
 						return socket;
-					::close(socket);
+					close(socket);
 				}
 			}
 			return InvalidSocket;
 		}
 
-		size_t recv(Socket socket, void* data, size_t size)
+		size_t recv(Socket socket, void* data, size_t size, bool* disconnected)
 		{
 			const auto received_size = ::recv(socket, data, size, 0);
-			if (received_size == 0 || received_size == -1)
+			if (received_size == 0)
+			{
+				if (disconnected)
+					*disconnected = true;
 				return 0;
-			return received_size;
+			}
+			else if (received_size == -1)
+			{
+				if (disconnected)
+					*disconnected = errno != EAGAIN && errno != EWOULDBLOCK;
+				return 0;
+			}
+			else
+				return received_size;
 		}
 
 		bool send(Socket socket, const void* data, size_t size)
@@ -135,6 +132,94 @@ namespace ynet
 		void shutdown(Socket socket)
 		{
 			::shutdown(socket, SHUT_WR);
+		}
+
+		void shutdown_server(Socket socket)
+		{
+			::shutdown(socket, SHUT_RD);
+		}
+
+		void Poller::poll()
+		{
+			const auto make_pollfd = [](Socket socket)
+			{
+				::pollfd pollfd;
+				::memset(&pollfd, 0, sizeof pollfd);
+				pollfd.fd = socket;
+				pollfd.events = POLLIN;
+				return pollfd;
+			};
+
+			std::vector<::pollfd> pollfds;
+			pollfds.reserve(_peers.size() + 1);
+			for (const auto peer_socket : _peers)
+				pollfds.emplace_back(make_pollfd(peer_socket));
+			if (_listening_socket != InvalidSocket)
+				pollfds.emplace_back(make_pollfd(_listening_socket));
+			auto count = ::poll(pollfds.data(), pollfds.size(), -1);
+			assert(count > 0);
+			bool do_accept = false;
+			bool do_stop = false;
+			if (_listening_socket != InvalidSocket)
+			{
+				const auto revents = pollfds.back().revents;
+				pollfds.pop_back();
+				if (revents)
+				{
+					if (revents == POLLIN)
+						do_accept = true;
+					else
+						do_stop = true;
+					--count;
+				}
+			}
+			for (const auto& pollfd : pollfds)
+			{
+				if (!pollfd.revents)
+					continue;
+				bool disconnected = pollfd.revents & (POLLHUP | POLLERR | POLLNVAL);
+				if (pollfd.revents & POLLIN)
+					_callbacks.on_received(pollfd.fd, disconnected);
+				if (disconnected)
+				{
+					for (auto i = _peers.begin(); i != _peers.end(); ++i)
+					{
+						if (*i == pollfd.fd)
+						{
+							_peers.erase(i);
+							break;
+						}
+					}
+					close(pollfd.fd);
+					_callbacks.on_disconnected(pollfd.fd);
+				}
+			}
+			if (do_accept)
+				accept();
+			if (do_stop)
+			{
+				_listening_socket = InvalidSocket;
+				for (const auto socket : _peers)
+					shutdown(socket);
+			}
+		}
+
+		void Poller::accept()
+		{
+			::sockaddr_storage sockaddr;
+			size_t sockaddr_size = sizeof sockaddr;
+			Socket peer = ::accept4(_listening_socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size, SOCK_NONBLOCK);
+			if (peer == InvalidSocket)
+				return;
+			std::string address;
+			int port = -1;
+			if (!convert(sockaddr, address, port))
+			{
+				close(peer);
+				return;
+			}
+			_peers.emplace_back(peer);
+			_callbacks.on_connected(peer, std::move(address), port);
 		}
 	}
 }

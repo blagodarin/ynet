@@ -2,8 +2,6 @@
 #include <iomanip>
 #include <iostream>
 
-#include <thread>
-
 #include "ynet.h"
 
 namespace
@@ -63,7 +61,8 @@ private:
 	{
 		std::cout << "Connected to " << link.remote_address << ":" << link.remote_port
 			<< " (as " << link.local_address << ":" << link.local_port << ")" << std::endl;
-		socket.send("GET / HTTP/1.1\r\n\r\n", 18);
+		const std::string request = "GET / HTTP/1.1\r\n\r\n";
+		socket.send(request.data(), request.size());
 	}
 
 	void on_disconnected(const ynet::Link& link) override
@@ -99,12 +98,6 @@ public:
 		_server->start();
 	}
 
-	~Server() override
-	{
-		_server.reset();
-		std::cout << "Stopped" << std::endl;
-	}
-
 private:
 
 	void on_started(const ynet::Link& link) override
@@ -119,13 +112,20 @@ private:
 
 	void on_disconnected(const ynet::Link& link) override
 	{
-		std::cout << "Connection to " << link.remote_address << ":" << link.remote_port << " lost" << std::endl;
+		std::cout << "Connection to " << link.remote_address << ":" << link.remote_port << " established" << std::endl;
 	}
 
-	void on_received(const ynet::Link& link, const void* data, size_t size, ynet::Socket&) override
+	void on_received(const ynet::Link& link, const void* data, size_t size, ynet::Socket& socket) override
 	{
 		std::cout << "Received " << size << " bytes from " << link.remote_address << ":" << link.remote_port << std::endl;
 		::dump(static_cast<const char*>(data), size);
+		const std::string reply = "You are " + link.remote_address + ':' + std::to_string(link.remote_port) + "\r\n\r\n";
+		socket.send(reply.data(), reply.size());
+	}
+
+	void on_stopped(const ynet::Link& link) override
+	{
+		std::cout << "Stopped at " << link.local_address << ":" << link.local_port << std::endl;
 	}
 
 private:

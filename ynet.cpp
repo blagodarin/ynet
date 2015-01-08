@@ -22,6 +22,10 @@ namespace ynet
 	{
 	}
 
+	void ServerCallback::on_stopped(const Link&)
+	{
+	}
+
 	std::unique_ptr<Server> Server::create(ServerCallback& callback, int port)
 	{
 		return std::unique_ptr<Server>(new TcpServer(callback, port));

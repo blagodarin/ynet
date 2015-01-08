@@ -1,5 +1,7 @@
 #include "tcp_server.h"
 
+#include <cassert>
+
 namespace ynet
 {
 	class TcpServerSocket: public Socket
@@ -9,11 +11,6 @@ namespace ynet
 		TcpServerSocket(TcpBackend::Socket socket)
 			: _socket(socket)
 		{
-		}
-
-		~TcpServerSocket() override
-		{
-			TcpBackend::close(_socket);
 		}
 
 		void close() override
@@ -51,8 +48,9 @@ namespace ynet
 	{
 		if (_socket == TcpBackend::InvalidSocket)
 			return;
-		TcpBackend::close(_socket); // TODO: ???
+		TcpBackend::shutdown_server(_socket);
 		_thread.join();
+		TcpBackend::close(_socket);
 	}
 
 	bool TcpServer::start()
@@ -72,23 +70,47 @@ namespace ynet
 		link.local_address = _address;
 		link.local_port = _port;
 		_callback.on_started(link);
+		TcpBackend::Poller poller(_socket, *this);
+		while (poller)
+			poller.poll();
+		_callback.on_stopped(link);
+	}
+
+	void TcpServer::on_connected(TcpBackend::Socket socket, std::string&& address, int port)
+	{
+		Link link;
+		link.local_address = _address;
+		link.local_port = _port;
+		link.remote_address = address;
+		link.remote_port = port;
+		_peers.emplace(socket, link);
+		TcpServerSocket server_socket(socket);
+		_callback.on_connected(link, server_socket);
+	}
+
+	void TcpServer::on_received(TcpBackend::Socket socket, bool& disconnected)
+	{
+		const auto peer = _peers.find(socket);
+		assert(peer != _peers.end());
+		const Link& peer_link = peer->second;
 		for (;;)
 		{
-			const auto socket = TcpBackend::accept(_socket, link.remote_address, link.remote_port);
-			if (socket == TcpBackend::InvalidSocket)
-				break;
+			const size_t size = TcpBackend::recv(socket, _buffer.data(), _buffer.size(), &disconnected);
+			if (size > 0)
 			{
 				TcpServerSocket server_socket(socket);
-				_callback.on_connected(link, server_socket);
-				for (;;)
-				{
-					const size_t size = TcpBackend::recv(socket, _buffer.data(), _buffer.size());
-					if (size == 0)
-						break;
-					_callback.on_received(link, _buffer.data(), size, server_socket);
-				}
+				_callback.on_received(peer_link, _buffer.data(), size, server_socket);
 			}
-			_callback.on_disconnected(link);
+			if (size < _buffer.size())
+				break;
 		}
+	}
+
+	void TcpServer::on_disconnected(TcpBackend::Socket socket)
+	{
+		const auto peer = _peers.find(socket);
+		assert(peer != _peers.end());
+		_callback.on_disconnected(peer->second);
+		_peers.erase(peer);
 	}
 }
