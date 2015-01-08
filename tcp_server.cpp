@@ -37,8 +37,8 @@ namespace ynet
 		TcpBackend::Socket _socket;
 	};
 
-	TcpServer::TcpServer(ServerCallback& callback, int port)
-		: _callback(callback)
+	TcpServer::TcpServer(ServerCallbacks& callbacks, int port)
+		: _callbacks(callbacks)
 		, _port(port >= 0 && port <= 65535 ? port : -1)
 		, _socket(TcpBackend::InvalidSocket)
 	{
@@ -69,11 +69,11 @@ namespace ynet
 		Link link;
 		link.local_address = _address;
 		link.local_port = _port;
-		_callback.on_started(link);
+		_callbacks.on_started(link);
 		TcpBackend::Poller poller(_socket, *this);
 		while (poller)
 			poller.poll();
-		_callback.on_stopped(link);
+		_callbacks.on_stopped(link);
 	}
 
 	void TcpServer::on_connected(TcpBackend::Socket socket, std::string&& address, int port)
@@ -85,7 +85,7 @@ namespace ynet
 		link.remote_port = port;
 		_peers.emplace(socket, link);
 		TcpServerSocket server_socket(socket);
-		_callback.on_connected(link, server_socket);
+		_callbacks.on_connected(link, server_socket);
 	}
 
 	void TcpServer::on_received(TcpBackend::Socket socket, bool& disconnected)
@@ -99,7 +99,7 @@ namespace ynet
 			if (size > 0)
 			{
 				TcpServerSocket server_socket(socket);
-				_callback.on_received(peer_link, _buffer.data(), size, server_socket);
+				_callbacks.on_received(peer_link, _buffer.data(), size, server_socket);
 			}
 			if (size < _buffer.size())
 				break;
@@ -110,7 +110,7 @@ namespace ynet
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		_callback.on_disconnected(peer->second);
+		_callbacks.on_disconnected(peer->second);
 		_peers.erase(peer);
 	}
 }

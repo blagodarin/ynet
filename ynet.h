@@ -40,11 +40,11 @@ namespace ynet
 
 	//!
 	//! \note All callbacks are called from the client thread.
-	class ClientCallback
+	class ClientCallbacks
 	{
 	public:
 
-		virtual ~ClientCallback() = default;
+		virtual ~ClientCallbacks() = default;
 
 		//!
 		virtual void on_started(const std::string& host, int port);
@@ -68,7 +68,7 @@ namespace ynet
 	public:
 
 		//!
-		static std::unique_ptr<Client> create(ClientCallback& callback, const std::string& host, int port);
+		static std::unique_ptr<Client> create(ClientCallbacks& callbacks, const std::string& host, int port);
 
 		~Client() override = default;
 
@@ -78,11 +78,11 @@ namespace ynet
 
 	//!
 	//! \note All callbacks are called from the server thread.
-	class ServerCallback
+	class ServerCallbacks
 	{
 	public:
 
-		virtual ~ServerCallback() = default;
+		virtual ~ServerCallbacks() = default;
 
 		//!
 		virtual void on_started(const Link& link);
@@ -106,7 +106,7 @@ namespace ynet
 	public:
 
 		//!
-		static std::unique_ptr<Server> create(ServerCallback& callback, int port);
+		static std::unique_ptr<Server> create(ServerCallbacks& callbacks, int port);
 
 		virtual ~Server() = default;
 

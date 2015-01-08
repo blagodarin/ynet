@@ -4,8 +4,8 @@
 
 namespace ynet
 {
-	TcpClient::TcpClient(ClientCallback& callback, const std::string& host, int port)
-		: _callback(callback)
+	TcpClient::TcpClient(ClientCallbacks& callbacks, const std::string& host, int port)
+		: _callbacks(callbacks)
 		, _host(host)
 		, _port(port >= 0 && port <= 65535 ? port : -1)
 		, _port_string(_port >= 0 ? std::to_string(_port) : std::string())
@@ -67,7 +67,7 @@ namespace ynet
 	void TcpClient::run()
 	{
 		Link link;
-		_callback.on_started(_host, _port);
+		_callbacks.on_started(_host, _port);
 		for (bool initial = true; ; )
 		{
 			const auto socket = TcpBackend::connect(_host, _port_string, link);
@@ -83,25 +83,25 @@ namespace ynet
 					}
 					_socket = socket;
 				}
-				_callback.on_connected(link, *this);
+				_callbacks.on_connected(link, *this);
 				for (;;)
 				{
 					const size_t size = TcpBackend::recv(_socket, _buffer.data(), _buffer.size(), nullptr);
 					if (size == 0)
 						break;
-					_callback.on_received(link, _buffer.data(), size, *this);
+					_callbacks.on_received(link, _buffer.data(), size, *this);
 				}
 				{
 					std::lock_guard<std::mutex> lock(_mutex);
 					TcpBackend::close(_socket);
 					_socket = TcpBackend::InvalidSocket;
 				}
-				_callback.on_disconnected(link);
+				_callbacks.on_disconnected(link);
 			}
 			else if (initial)
 			{
 				initial = false;
-				_callback.on_refused(_host, _port);
+				_callbacks.on_refused(_host, _port);
 			}
 
 			std::unique_lock<std::mutex> lock(_mutex);

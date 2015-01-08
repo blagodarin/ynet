@@ -12,7 +12,7 @@ namespace ynet
 	{
 	public:
 
-		TcpClient(ClientCallback& callback, const std::string& host, int port);
+		TcpClient(ClientCallbacks& callbacks, const std::string& host, int port);
 		~TcpClient() override;
 
 		// Socket
@@ -28,7 +28,7 @@ namespace ynet
 
 	private:
 	
-		ClientCallback& _callback;
+		ClientCallbacks& _callbacks;
 		const std::string _host;
 		const int _port;
 		const std::string _port_string;

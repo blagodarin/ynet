@@ -34,7 +34,7 @@ namespace
 	}
 }
 
-class Client: public ynet::ClientCallback
+class Client: public ynet::ClientCallbacks
 {
 public:
 
@@ -88,7 +88,7 @@ private:
 	std::unique_ptr<ynet::Client> _client;
 };
 
-class Server: public ynet::ServerCallback
+class Server: public ynet::ServerCallbacks
 {
 public:
 

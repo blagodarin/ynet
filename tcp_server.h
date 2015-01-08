@@ -11,7 +11,7 @@ namespace ynet
 	{
 	public:
 
-		TcpServer(ServerCallback& callback, int port);
+		TcpServer(ServerCallbacks& callbacks, int port);
 		~TcpServer() override;
 
 		// Server
@@ -28,7 +28,7 @@ namespace ynet
 
 	private:
 
-		ServerCallback& _callback;
+		ServerCallbacks& _callbacks;
 		const int _port;
 		std::string _address;
 		TcpBackend::Socket _socket;
