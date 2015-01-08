@@ -1,8 +1,10 @@
+#pragma once
+
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 
-#include "tcp_client_posix.h"
+#include "tcp_backend.h"
 
 namespace ynet
 {
@@ -30,10 +32,10 @@ namespace ynet
 		const std::string _host;
 		const int _port;
 		const std::string _port_string;
-		bool _open;
+		bool _started;
 		std::thread _thread;
 		std::mutex _mutex;
-		TcpClientBackend::Socket _socket;
+		TcpBackend::Socket _socket;
 		bool _closing;
 		std::condition_variable _closing_event;
 		std::array<unsigned char, 48 * 1024> _buffer;

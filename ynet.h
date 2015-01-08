@@ -39,6 +39,7 @@ namespace ynet
 	};
 
 	//!
+	//! \note All callbacks are called from the client thread.
 	class ClientCallback
 	{
 	public:
@@ -46,20 +47,19 @@ namespace ynet
 		virtual ~ClientCallback() = default;
 
 		//!
-		//! \note The function is called from the client thread.
+		virtual void on_started(const std::string& host, int port);
+
+		//!
 		virtual void on_connected(const Link& link, Socket& socket) = 0;
 
 		//!
-		//! \note The function is called from the client thread.
 		virtual void on_disconnected(const Link& link) = 0;
 
 		//!
-		//! \note The function is called from the client thread.
 		virtual void on_received(const Link& link, const void* data, size_t size, Socket& socket) = 0;
 
 		//!
-		//! \note The function is called from the client thread.
-		virtual void on_refused(const std::string& host, int port) = 0;
+		virtual void on_refused(const std::string& host, int port);
 	};
 
 	//!
@@ -77,6 +77,7 @@ namespace ynet
 	};
 
 	//!
+	//! \note All callbacks are called from the server thread.
 	class ServerCallback
 	{
 	public:
@@ -84,15 +85,15 @@ namespace ynet
 		virtual ~ServerCallback() = default;
 
 		//!
-		//! \note The function is called from the server thread.
+		virtual void on_started(const Link& link);
+
+		//!
 		virtual void on_connected(const Link& link, Socket& socket) = 0;
 
 		//!
-		//! \note The function is called from the server thread.
 		virtual void on_disconnected(const Link& link) = 0;
 
 		//!
-		//! \note The function is called from the server thread.
 		virtual void on_received(const Link& link, const void* data, size_t size, Socket& socket) = 0;
 	};
 

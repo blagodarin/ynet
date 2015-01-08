@@ -1,4 +1,8 @@
-#include "ynet.h"
+#pragma once
+
+#include <thread>
+
+#include "tcp_backend.h"
 
 namespace ynet
 {
@@ -14,8 +18,15 @@ namespace ynet
 
 	private:
 
+		void run();
+
+	private:
+
 		ServerCallback& _callback;
 		const int _port;
-		const std::string _port_string;
+		std::string _address;
+		TcpBackend::Socket _socket;
+		std::thread _thread;
+		std::array<unsigned char, 48 * 1024> _buffer;
 	};
 }

@@ -1,4 +1,4 @@
-#include "tcp_client_posix.h"
+#include "tcp_backend.h"
 
 #include <cassert>
 #include <cstring>
@@ -38,8 +38,23 @@ namespace ynet
 		}
 	}
 
-	namespace TcpClientBackend
+	namespace TcpBackend
 	{
+		Socket accept(Socket socket, std::string& address, int& port)
+		{
+			::sockaddr_storage sockaddr;
+			size_t sockaddr_size = sizeof sockaddr;
+			Socket peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
+			if (peer == InvalidSocket)
+				return InvalidSocket;
+			if (!convert(sockaddr, address, port))
+			{
+				::close(peer);
+				return InvalidSocket;
+			}
+			return peer;
+		}
+
 		void close(Socket socket)
 		{
 			::close(socket);
@@ -79,6 +94,26 @@ namespace ynet
 			}
 			::freeaddrinfo(addrinfos);
 			return socket;
+		}
+
+		Socket listen(int port, std::string& address)
+		{
+			::sockaddr_storage sockaddr;
+			::memset(&sockaddr, 0, sizeof sockaddr);
+			sockaddr.ss_family = AF_INET;
+			reinterpret_cast<::sockaddr_in*>(&sockaddr)->sin_port = ::htons(port);
+			if (convert(sockaddr, address, port))
+			{
+				const Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
+				if (socket != InvalidSocket)
+				{
+					if (::bind(socket, reinterpret_cast<::sockaddr*>(&sockaddr), sizeof sockaddr) == 0
+						&& ::listen(socket, 16) == 0)
+						return socket;
+					::close(socket);
+				}
+			}
+			return InvalidSocket;
 		}
 
 		size_t recv(Socket socket, void* data, size_t size)

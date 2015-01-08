@@ -43,17 +43,21 @@ public:
 	Client(const std::string& host, int port)
 		: _client(ynet::Client::create(*this, host, port))
 	{
-		std::cout << "Started" << std::endl;
 		_client->start();
 	}
 
 	~Client() override
 	{
-		_client->close();
+		_client.reset();
 		std::cout << "Stopped" << std::endl;
 	}
 
 private:
+
+	void on_started(const std::string& host, int port) override
+	{
+		std::cout << "Started connecting to " << host << ":" << port << std::endl;
+	}
 
 	void on_connected(const ynet::Link& link, ynet::Socket& socket) override
 	{
@@ -85,14 +89,67 @@ private:
 	std::unique_ptr<ynet::Client> _client;
 };
 
+class Server: public ynet::ServerCallback
+{
+public:
+
+	Server(int port)
+		: _server(ynet::Server::create(*this, port))
+	{
+		_server->start();
+	}
+
+	~Server() override
+	{
+		_server.reset();
+		std::cout << "Stopped" << std::endl;
+	}
+
+private:
+
+	void on_started(const ynet::Link& link) override
+	{
+		std::cout << "Started at " << link.local_address << ":" << link.local_port << std::endl;
+	}
+
+	void on_connected(const ynet::Link& link, ynet::Socket&) override
+	{
+		std::cout << "Connection to " << link.remote_address << ":" << link.remote_port << " established" << std::endl;
+	}
+
+	void on_disconnected(const ynet::Link& link) override
+	{
+		std::cout << "Connection to " << link.remote_address << ":" << link.remote_port << " lost" << std::endl;
+	}
+
+	void on_received(const ynet::Link& link, const void* data, size_t size, ynet::Socket&) override
+	{
+		std::cout << "Received " << size << " bytes from " << link.remote_address << ":" << link.remote_port << std::endl;
+		::dump(static_cast<const char*>(data), size);
+	}
+
+private:
+
+	std::unique_ptr<ynet::Server> _server;
+};
+
 int main(int argc, char** argv)
 {
-	if (argc != 3)
+	if (argc == 3)
 	{
-		std::cerr << "Usage: " << argv[0] << " HOST PORT" << std::endl;
+		Client client(argv[1], ::atoi(argv[2]));
+		std::cin.get();
+		return 0;
+	}
+	else if (argc == 2)
+	{
+		Server server(::atoi(argv[1]));
+		std::cin.get();
+		return 0;
+	}
+	else
+	{
+		std::cerr << "Usage:\n\tynet HOST PORT\n\tynet PORT" << std::endl;
 		return 1;
 	}
-	Client client(argv[1], ::atoi(argv[2]));
-	std::cin.get();
-	return 0;
 }
