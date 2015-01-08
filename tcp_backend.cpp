@@ -77,6 +77,7 @@ namespace ynet
 					}
 				}
 				close(socket);
+				socket = InvalidSocket; // In case it's the last addrinfo.
 			}
 			::freeaddrinfo(addrinfos);
 			return socket;
