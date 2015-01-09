@@ -20,6 +20,8 @@ namespace ynet
 		int port() const override;
 		bool send(const void* data, size_t size) override;
 
+		void close();
+
 	private:
 
 		void run();
@@ -34,6 +36,7 @@ namespace ynet
 		std::thread _thread;
 		std::mutex _mutex;
 		TcpBackend::Socket _socket;
+		bool _shutting_down;
 		bool _closing;
 		std::condition_variable _closing_event;
 		std::array<unsigned char, 48 * 1024> _buffer;

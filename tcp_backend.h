@@ -7,16 +7,6 @@
 
 namespace ynet
 {
-	struct Link
-	{
-		std::string local_address;
-		int local_port;
-		std::string remote_address;
-		int remote_port;
-
-		Link(): local_port(-1), remote_port(-1) {}
-	};
-
 	namespace TcpBackend
 	{
 		typedef int Socket;
@@ -30,7 +20,7 @@ namespace ynet
 		};
 
 		void close(Socket socket);
-		Socket connect(const std::string& host, const std::string& port, Link& link);
+		Socket connect(const std::string& host, const std::string& port, std::string& address);
 		Socket listen(int port, std::string& address);
 		size_t recv(Socket socket, void* data, size_t size, bool* disconnected);
 		bool send(Socket socket, const void* data, size_t size);

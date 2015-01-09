@@ -33,7 +33,7 @@ namespace ynet
 		const int _port;
 		std::string _address;
 		TcpBackend::Socket _socket;
-		std::map<TcpBackend::Socket, Link> _peers;
+		std::map<TcpBackend::Socket, std::pair<std::string, int>> _peers;
 		std::thread _thread;
 		TcpBackend::Poller _poller;
 		std::array<unsigned char, 48 * 1024> _buffer;

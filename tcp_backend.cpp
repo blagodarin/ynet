@@ -46,7 +46,7 @@ namespace ynet
 			::close(socket);
 		}
 
-		Socket connect(const std::string& host, const std::string& port, Link& link)
+		Socket connect(const std::string& host, const std::string& port, std::string& address)
 		{
 			::addrinfo* addrinfos = nullptr;
 			{
@@ -64,17 +64,12 @@ namespace ynet
 				socket = ::socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
 				if (socket == InvalidSocket)
 					continue;
-				if (convert(*reinterpret_cast<const ::sockaddr_storage*>(addrinfo->ai_addr), link.remote_address, link.remote_port)
+				int remote_port = -1;
+				if (convert(*reinterpret_cast<const ::sockaddr_storage*>(addrinfo->ai_addr), address, remote_port)
 					&& ::connect(socket, addrinfo->ai_addr, addrinfo->ai_addrlen) != -1)
 				{
-					::sockaddr_storage sockaddr;
-					size_t sockaddr_size = sizeof sockaddr;
-					if (::getsockname(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size) != -1
-						&& convert(sockaddr, link.local_address, link.local_port))
-					{
-						// TODO: Keep-alive.
-						break;
-					}
+					// TODO: Keep-alive.
+					break;
 				}
 				close(socket);
 				socket = InvalidSocket; // In case it's the last addrinfo.

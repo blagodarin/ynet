@@ -12,7 +12,7 @@ namespace ynet
 
 		virtual ~Socket() = default;
 
-		//! Remote address.
+		//!
 		virtual std::string address() const = 0;
 
 		//! Close the socket.

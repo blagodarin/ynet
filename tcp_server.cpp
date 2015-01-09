@@ -104,13 +104,8 @@ namespace ynet
 
 	void TcpServer::on_connected(TcpBackend::Socket socket, std::string&& address, int port)
 	{
-		Link link;
-		link.local_address = _address;
-		link.local_port = _port;
-		link.remote_address = address;
-		link.remote_port = port;
-		_peers.emplace(socket, link);
-		TcpServerSocket server_socket(socket, link.remote_address, link.remote_port);
+		const auto peer = _peers.emplace(socket, std::make_pair(address, port)).first;
+		TcpServerSocket server_socket(socket, peer->second.first, peer->second.second);
 		_callbacks.on_connected(*this, server_socket);
 	}
 
@@ -118,7 +113,7 @@ namespace ynet
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		TcpServerSocket server_socket(socket, peer->second.remote_address, peer->second.remote_port);
+		TcpServerSocket server_socket(socket, peer->second.first, peer->second.second);
 		while (server_socket)
 		{
 			const size_t size = TcpBackend::recv(socket, _buffer.data(), _buffer.size(), &disconnected);
@@ -133,7 +128,7 @@ namespace ynet
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		_callbacks.on_disconnected(*this, TcpServerSocket(socket, peer->second.remote_address, peer->second.remote_port));
+		_callbacks.on_disconnected(*this, TcpServerSocket(socket, peer->second.first, peer->second.second));
 		_peers.erase(peer);
 	}
 }

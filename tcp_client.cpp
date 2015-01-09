@@ -22,7 +22,7 @@ namespace ynet
 
 		void close() override
 		{
-			// TODO: Implement.
+			_client.close();
 		}
 
 		int port() const override
@@ -49,6 +49,7 @@ namespace ynet
 		, _port_string(_port >= 0 ? std::to_string(_port) : std::string())
 		, _reconnect_timeout(1000)
 		, _socket(TcpBackend::InvalidSocket)
+		, _shutting_down(false)
 		, _closing(false)
 	{
 		if (_port < 0)
@@ -58,15 +59,21 @@ namespace ynet
 
 	TcpClient::~TcpClient()
 	{
-		// TODO: Fix closing from the client thread.
+		if (_thread.joinable())
 		{
-			std::lock_guard<std::mutex> lock(_mutex);
-			_closing = true;
-			if (_socket != TcpBackend::InvalidSocket)
-				TcpBackend::shutdown(_socket);
+			assert(_thread.get_id() != std::this_thread::get_id());
+			{
+				std::lock_guard<std::mutex> lock(_mutex);
+				_closing = true;
+				if (_socket != TcpBackend::InvalidSocket && !_shutting_down)
+				{
+					TcpBackend::shutdown(_socket);
+					_shutting_down = true;
+				}
+			}
+			_closing_event.notify_one();
+			_thread.join();
 		}
-		_closing_event.notify_one();
-		_thread.join();
 		assert(_socket == TcpBackend::InvalidSocket);
 	}
 
@@ -83,7 +90,7 @@ namespace ynet
 	bool TcpClient::send(const void* data, size_t size)
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
-		if (_socket == TcpBackend::InvalidSocket || _closing)
+		if (_socket == TcpBackend::InvalidSocket || _shutting_down)
 			return false;
 		auto block = static_cast<const uint8_t*>(data);
 		while (size > 0)
@@ -97,13 +104,23 @@ namespace ynet
 		return true;
 	}
 
+	void TcpClient::close()
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		if (!_shutting_down)
+		{
+			TcpBackend::shutdown(_socket);
+			_shutting_down = true;
+		}
+	}
+
 	void TcpClient::run()
 	{
 		_callbacks.on_started(*this);
-		Link link;
 		for (bool initial = true; ; )
 		{
-			const auto socket = TcpBackend::connect(_host, _port_string, link);
+			std::string address;
+			const auto socket = TcpBackend::connect(_host, _port_string, address);
 			if (socket != TcpBackend::InvalidSocket)
 			{
 				initial = false;
@@ -116,7 +133,7 @@ namespace ynet
 					}
 					_socket = socket;
 				}
-				TcpClientSocket client_socket(*this, link.remote_address, link.remote_port);
+				TcpClientSocket client_socket(*this, address, _port);
 				_callbacks.on_connected(*this, client_socket);
 				for (;;)
 				{
@@ -129,6 +146,7 @@ namespace ynet
 					std::lock_guard<std::mutex> lock(_mutex);
 					TcpBackend::close(_socket);
 					_socket = TcpBackend::InvalidSocket;
+					_shutting_down = false;
 				}
 				_callbacks.on_disconnected(*this, client_socket);
 			}
