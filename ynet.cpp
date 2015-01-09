@@ -5,15 +5,15 @@
 
 namespace ynet
 {
-	void ClientCallbacks::on_started(const std::string&, int)
+	void ClientCallbacks::on_started(const Client&)
 	{
 	}
 
-	void ClientCallbacks::on_failed_to_connect(const std::string&, int)
+	void ClientCallbacks::on_failed_to_connect(const Client&)
 	{
 	}
 
-	void ClientCallbacks::on_stopped(const std::string&, int)
+	void ClientCallbacks::on_stopped(const Client&)
 	{
 	}
 

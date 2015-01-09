@@ -7,6 +7,16 @@
 
 namespace ynet
 {
+	struct Link
+	{
+		std::string local_address;
+		int local_port;
+		std::string remote_address;
+		int remote_port;
+
+		Link(): local_port(-1), remote_port(-1) {}
+	};
+
 	namespace TcpBackend
 	{
 		typedef int Socket;

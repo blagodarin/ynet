@@ -16,6 +16,8 @@ namespace ynet
 		~TcpClient() override;
 
 		// Client
+		std::string host() const override;
+		int port() const override;
 		bool send(const void* data, size_t size) override;
 
 	private:

@@ -70,6 +70,16 @@ namespace ynet
 		assert(_socket == TcpBackend::InvalidSocket);
 	}
 
+	std::string TcpClient::host() const
+	{
+		return _host;
+	}
+
+	int TcpClient::port() const
+	{
+		return _port;
+	}
+
 	bool TcpClient::send(const void* data, size_t size)
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
@@ -89,7 +99,7 @@ namespace ynet
 
 	void TcpClient::run()
 	{
-		_callbacks.on_started(_host, _port);
+		_callbacks.on_started(*this);
 		Link link;
 		for (bool initial = true; ; )
 		{
@@ -107,25 +117,25 @@ namespace ynet
 					_socket = socket;
 				}
 				TcpClientSocket client_socket(*this, link.remote_address, link.remote_port);
-				_callbacks.on_connected(link, client_socket);
+				_callbacks.on_connected(*this, client_socket);
 				for (;;)
 				{
 					const size_t size = TcpBackend::recv(_socket, _buffer.data(), _buffer.size(), nullptr);
 					if (size == 0)
 						break;
-					_callbacks.on_received(link, client_socket, _buffer.data(), size);
+					_callbacks.on_received(*this, client_socket, _buffer.data(), size);
 				}
 				{
 					std::lock_guard<std::mutex> lock(_mutex);
 					TcpBackend::close(_socket);
 					_socket = TcpBackend::InvalidSocket;
 				}
-				_callbacks.on_disconnected(link, client_socket);
+				_callbacks.on_disconnected(*this, client_socket);
 			}
 			else if (initial)
 			{
 				initial = false;
-				_callbacks.on_failed_to_connect(_host, _port);
+				_callbacks.on_failed_to_connect(*this);
 			}
 
 			std::unique_lock<std::mutex> lock(_mutex);
@@ -137,6 +147,6 @@ namespace ynet
 			else if (_closing)
 				break;
 		}
-		_callbacks.on_stopped(_host, _port);
+		_callbacks.on_stopped(*this);
 	}
 }

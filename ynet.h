@@ -26,23 +26,7 @@ namespace ynet
 		virtual bool send(const void* data, size_t size) = 0;
 	};
 
-	//!
-	struct Link
-	{
-		//!
-		std::string local_address;
-
-		//!
-		int local_port;
-
-		//!
-		std::string remote_address;
-
-		//!
-		int remote_port;
-
-		Link(): local_port(-1), remote_port(-1) {}
-	};
+	class Client;
 
 	//!
 	//! \note All callbacks are called from the client thread.
@@ -53,22 +37,22 @@ namespace ynet
 		virtual ~ClientCallbacks() = default;
 
 		//!
-		virtual void on_started(const std::string& host, int port);
+		virtual void on_started(const Client& client);
 
 		//!
-		virtual void on_connected(const Link& link, Socket& socket) = 0;
+		virtual void on_connected(const Client& client, Socket& socket) = 0;
 
 		//!
-		virtual void on_disconnected(const Link& link, const Socket& socket) = 0;
+		virtual void on_received(const Client& client, Socket& socket, const void* data, size_t size) = 0;
 
 		//!
-		virtual void on_received(const Link& link, Socket& socket, const void* data, size_t size) = 0;
+		virtual void on_disconnected(const Client& client, const Socket& socket) = 0;
 
 		//!
-		virtual void on_failed_to_connect(const std::string& host, int port);
+		virtual void on_failed_to_connect(const Client& client);
 
 		//!
-		virtual void on_stopped(const std::string& host, int port);
+		virtual void on_stopped(const Client& client);
 	};
 
 	//!
@@ -80,6 +64,12 @@ namespace ynet
 		static std::unique_ptr<Client> create(ClientCallbacks& callbacks, const std::string& host, int port);
 
 		virtual ~Client() = default;
+
+		//!
+		virtual std::string host() const = 0;
+
+		//!
+		virtual int port() const = 0;
 
 		//! Send a message to the server synchronously.
 		//! \return \c true if the message was sent.
@@ -103,10 +93,10 @@ namespace ynet
 		virtual void on_connected(const Server& server, Socket& client) = 0;
 
 		//!
-		virtual void on_disconnected(const Server& server, const Socket& client) = 0;
+		virtual void on_received(const Server& server, Socket& client, const void* data, size_t size) = 0;
 
 		//!
-		virtual void on_received(const Server& server, Socket& client, const void* data, size_t size) = 0;
+		virtual void on_disconnected(const Server& server, const Socket& client) = 0;
 
 		//!
 		virtual void on_stopped(const Server& server);
