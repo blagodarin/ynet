@@ -10,10 +10,12 @@ namespace ynet
 		, _port(port >= 0 && port <= 65535 ? port : -1)
 		, _port_string(_port >= 0 ? std::to_string(_port) : std::string())
 		, _reconnect_timeout(1000)
-		, _started(false)
 		, _socket(TcpBackend::InvalidSocket)
 		, _closing(false)
 	{
+		if (_port < 0)
+			return; // TODO: Throw.
+		_thread = std::thread(std::bind(&TcpClient::run, this));
 	}
 
 	TcpClient::~TcpClient()
@@ -24,8 +26,6 @@ namespace ynet
 	void TcpClient::close()
 	{
 		// TODO: Fix closing from the client thread.
-		if (!_started)
-			return;
 		{
 			std::lock_guard<std::mutex> lock(_mutex);
 			_closing = true;
@@ -34,7 +34,6 @@ namespace ynet
 		}
 		_closing_event.notify_one();
 		_thread.join();
-		_started = false;
 		assert(_socket == TcpBackend::InvalidSocket);
 		_closing = false;
 	}
@@ -53,15 +52,6 @@ namespace ynet
 			block += block_size;
 			size -= block_size;
 		}
-		return true;
-	}
-
-	bool TcpClient::start()
-	{
-		if (_started || _port < 0)
-			return false;
-		_started = true;
-		_thread = std::thread(std::bind(&TcpClient::run, this));
 		return true;
 	}
 

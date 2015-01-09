@@ -74,10 +74,9 @@ namespace ynet
 		static std::unique_ptr<Client> create(ClientCallbacks& callbacks, const std::string& host, int port);
 
 		~Client() override = default;
-
-		//! Start the client activity.
-		virtual bool start() = 0;
 	};
+
+	class Server;
 
 	//!
 	//! \note All callbacks are called from the server thread.
@@ -88,19 +87,19 @@ namespace ynet
 		virtual ~ServerCallbacks() = default;
 
 		//!
-		virtual void on_started(const std::string& address, int port);
+		virtual void on_started(const Server& server);
 
 		//!
-		virtual void on_connected(const Link& link, Socket& socket) = 0;
+		virtual void on_connected(const Server& server, const std::string& address, int port, Socket& client) = 0;
 
 		//!
-		virtual void on_disconnected(const Link& link) = 0;
+		virtual void on_disconnected(const Server& server, const std::string& address, int port) = 0;
 
 		//!
-		virtual void on_received(const Link& link, const void* data, size_t size, Socket& socket) = 0;
+		virtual void on_received(const Server& server, const std::string& address, int port, const void* data, size_t size, Socket& client) = 0;
 
 		//!
-		virtual void on_stopped(const std::string& address, int port);
+		virtual void on_stopped(const Server& server);
 	};
 
 	//!
@@ -113,7 +112,10 @@ namespace ynet
 
 		virtual ~Server() = default;
 
-		//! Start the server activity.
-		virtual bool start() = 0;
+		//!
+		virtual std::string address() const = 0;
+
+		//!
+		virtual int port() const = 0;
 	};
 }

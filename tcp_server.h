@@ -15,7 +15,8 @@ namespace ynet
 		~TcpServer() override;
 
 		// Server
-		bool start() override;
+		std::string address() const override;
+		int port() const override;
 
 	private:
 

@@ -22,11 +22,11 @@ namespace ynet
 		return std::unique_ptr<Client>(new TcpClient(callbacks, host, port));
 	}
 
-	void ServerCallbacks::on_started(const std::string&, int)
+	void ServerCallbacks::on_started(const Server&)
 	{
 	}
 
-	void ServerCallbacks::on_stopped(const std::string&, int)
+	void ServerCallbacks::on_stopped(const Server&)
 	{
 	}
 
