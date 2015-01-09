@@ -4,6 +4,44 @@
 
 namespace ynet
 {
+	class TcpClientSocket: public Socket
+	{
+	public:
+
+		TcpClientSocket(TcpClient& client, const std::string& address, int port)
+			: _client(client)
+			, _address(address)
+			, _port(port)
+		{
+		}
+
+		std::string address() const override
+		{
+			return _address;
+		}
+
+		void close() override
+		{
+			// TODO: Implement.
+		}
+
+		int port() const override
+		{
+			return _port;
+		}
+
+		bool send(const void* data, size_t size) override
+		{
+			return _client.send(data, size);
+		}
+
+	private:
+
+		TcpClient& _client;
+		const std::string& _address;
+		const int _port;
+	};
+
 	TcpClient::TcpClient(ClientCallbacks& callbacks, const std::string& host, int port)
 		: _callbacks(callbacks)
 		, _host(host)
@@ -20,11 +58,6 @@ namespace ynet
 
 	TcpClient::~TcpClient()
 	{
-		close();
-	}
-
-	void TcpClient::close()
-	{
 		// TODO: Fix closing from the client thread.
 		{
 			std::lock_guard<std::mutex> lock(_mutex);
@@ -35,7 +68,6 @@ namespace ynet
 		_closing_event.notify_one();
 		_thread.join();
 		assert(_socket == TcpBackend::InvalidSocket);
-		_closing = false;
 	}
 
 	bool TcpClient::send(const void* data, size_t size)
@@ -74,20 +106,21 @@ namespace ynet
 					}
 					_socket = socket;
 				}
-				_callbacks.on_connected(link, *this);
+				TcpClientSocket client_socket(*this, link.remote_address, link.remote_port);
+				_callbacks.on_connected(link, client_socket);
 				for (;;)
 				{
 					const size_t size = TcpBackend::recv(_socket, _buffer.data(), _buffer.size(), nullptr);
 					if (size == 0)
 						break;
-					_callbacks.on_received(link, _buffer.data(), size, *this);
+					_callbacks.on_received(link, client_socket, _buffer.data(), size);
 				}
 				{
 					std::lock_guard<std::mutex> lock(_mutex);
 					TcpBackend::close(_socket);
 					_socket = TcpBackend::InvalidSocket;
 				}
-				_callbacks.on_disconnected(link);
+				_callbacks.on_disconnected(link, client_socket);
 			}
 			else if (initial)
 			{

@@ -15,8 +15,7 @@ namespace ynet
 		TcpClient(ClientCallbacks& callbacks, const std::string& host, int port);
 		~TcpClient() override;
 
-		// Socket
-		void close() override;
+		// Client
 		bool send(const void* data, size_t size) override;
 
 	private:

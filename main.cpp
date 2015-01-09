@@ -52,21 +52,19 @@ private:
 
 	void on_connected(const ynet::Link& link, ynet::Socket& socket) override
 	{
-		std::cout << "Connected to " << link.remote_address << ":" << link.remote_port
-			<< " (as " << link.local_address << ":" << link.local_port << ")" << std::endl;
+		std::cout << "Connected to " << socket.address() << ":" << socket.port() << std::endl;
 		const std::string request = "GET / HTTP/1.1\r\n\r\n";
 		socket.send(request.data(), request.size());
 	}
 
-	void on_disconnected(const ynet::Link& link) override
+	void on_disconnected(const ynet::Link& link, const ynet::Socket& socket) override
 	{
-		std::cout << "Disconnected from " << link.remote_address << ":" << link.remote_port
-			<< " (as " << link.local_address << ":" << link.local_port << ")" << std::endl;
+		std::cout << "Disconnected from " << socket.address() << ":" << socket.port() << std::endl;
 	}
 
-	void on_received(const ynet::Link& link, const void* data, size_t size, ynet::Socket&) override
+	void on_received(const ynet::Link& link, ynet::Socket& socket, const void* data, size_t size) override
 	{
-		std::cout << "Received " << size << " bytes from " << link.remote_address << ":" << link.remote_port
+		std::cout << "Received " << size << " bytes from " << socket.address() << ":" << socket.port()
 			<< " (as " << link.local_address << ":" << link.local_port << ")" << std::endl;
 		::dump(static_cast<const char*>(data), size);
 	}
@@ -102,21 +100,21 @@ private:
 		std::cout << "Server " << server.address() << ":" << server.port() << " started" << std::endl;
 	}
 
-	void on_connected(const ynet::Server&, const std::string& address, int port, ynet::Socket&) override
+	void on_connected(const ynet::Server&, ynet::Socket& client) override
 	{
-		std::cout << "Client " << address << ":" << port << " connected" << std::endl;
+		std::cout << "Client " << client.address() << ":" << client.port() << " connected" << std::endl;
 	}
 
-	void on_disconnected(const ynet::Server&, const std::string& address, int port) override
+	void on_disconnected(const ynet::Server&, const ynet::Socket& client) override
 	{
-		std::cout << "Client " << address << ":" << port << " disconnected" << std::endl;
+		std::cout << "Client " << client.address() << ":" << client.port() << " disconnected" << std::endl;
 	}
 
-	void on_received(const ynet::Server&, const std::string& address, int port, const void* data, size_t size, ynet::Socket& client) override
+	void on_received(const ynet::Server&, ynet::Socket& client, const void* data, size_t size) override
 	{
-		std::cout << "Client " << address << ":" << port << " sent " << size << " bytes" << std::endl;
+		std::cout << "Client " << client.address() << ":" << client.port() << " sent " << size << " bytes" << std::endl;
 		::dump(static_cast<const char*>(data), size);
-		const std::string reply = "You are " + address + ':' + std::to_string(port) + "\r\n\r\n";
+		const std::string reply = "You are " + client.address() + ':' + std::to_string(client.port()) + "\r\n\r\n";
 		client.send(reply.data(), reply.size());
 	}
 

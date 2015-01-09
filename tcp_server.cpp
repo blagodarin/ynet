@@ -8,14 +8,21 @@ namespace ynet
 	{
 	public:
 
-		TcpServerSocket(TcpBackend::Socket socket)
+		TcpServerSocket(TcpBackend::Socket socket, const std::string& address, int port)
 			: _socket(socket)
+			, _address(address)
+			, _port(port)
 		{
 		}
 
 		explicit operator bool() const
 		{
 			return _socket != TcpBackend::InvalidSocket;
+		}
+
+		std::string address() const override
+		{
+			return _address;
 		}
 
 		void close() override
@@ -25,6 +32,11 @@ namespace ynet
 				TcpBackend::shutdown(_socket);
 				_socket = TcpBackend::InvalidSocket;
 			}
+		}
+
+		int port() const override
+		{
+			return _port;
 		}
 
 		bool send(const void* data, size_t size) override
@@ -46,6 +58,8 @@ namespace ynet
 	private:
 
 		TcpBackend::Socket _socket;
+		const std::string& _address;
+		const int _port;
 	};
 
 	TcpServer::TcpServer(ServerCallbacks& callbacks, int port)
@@ -96,19 +110,20 @@ namespace ynet
 		link.remote_address = address;
 		link.remote_port = port;
 		_peers.emplace(socket, link);
-		TcpServerSocket server_socket(socket);
-		_callbacks.on_connected(*this, link.remote_address, link.remote_port, server_socket);
+		TcpServerSocket server_socket(socket, link.remote_address, link.remote_port);
+		_callbacks.on_connected(*this, server_socket);
 	}
 
 	void TcpServer::on_received(TcpBackend::Socket socket, bool& disconnected)
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		for (TcpServerSocket server_socket(socket); server_socket; )
+		TcpServerSocket server_socket(socket, peer->second.remote_address, peer->second.remote_port);
+		while (server_socket)
 		{
 			const size_t size = TcpBackend::recv(socket, _buffer.data(), _buffer.size(), &disconnected);
 			if (size > 0)
-				_callbacks.on_received(*this, peer->second.remote_address, peer->second.remote_port, _buffer.data(), size, server_socket);
+				_callbacks.on_received(*this, server_socket, _buffer.data(), size);
 			if (size < _buffer.size())
 				break;
 		}
@@ -118,7 +133,7 @@ namespace ynet
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		_callbacks.on_disconnected(*this, peer->second.remote_address, peer->second.remote_port);
+		_callbacks.on_disconnected(*this, TcpServerSocket(socket, peer->second.remote_address, peer->second.remote_port));
 		_peers.erase(peer);
 	}
 }
