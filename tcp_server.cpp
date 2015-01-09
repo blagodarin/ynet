@@ -15,11 +15,14 @@ namespace ynet
 
 		void close() override
 		{
-			// TODO: Implement.
+			TcpBackend::shutdown(_socket);
+			_socket = TcpBackend::InvalidSocket;
 		}
 
 		bool send(const void* data, size_t size) override
 		{
+			if (_socket == TcpBackend::InvalidSocket)
+				return false;
 			auto block = static_cast<const uint8_t*>(data);
 			while (size > 0)
 			{
@@ -41,6 +44,7 @@ namespace ynet
 		: _callbacks(callbacks)
 		, _port(port >= 0 && port <= 65535 ? port : -1)
 		, _socket(TcpBackend::InvalidSocket)
+		, _poller(*this)
 	{
 	}
 
@@ -66,14 +70,9 @@ namespace ynet
 
 	void TcpServer::run()
 	{
-		Link link;
-		link.local_address = _address;
-		link.local_port = _port;
-		_callbacks.on_started(link);
-		TcpBackend::Poller poller(_socket, *this);
-		while (poller)
-			poller.poll();
-		_callbacks.on_stopped(link);
+		_callbacks.on_started(_address, _port);
+		_poller.run(_socket);
+		_callbacks.on_stopped(_address, _port);
 	}
 
 	void TcpServer::on_connected(TcpBackend::Socket socket, std::string&& address, int port)

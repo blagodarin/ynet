@@ -44,12 +44,6 @@ public:
 		_client->start();
 	}
 
-	~Client() override
-	{
-		_client.reset();
-		std::cout << "Stopped" << std::endl;
-	}
-
 private:
 
 	void on_started(const std::string& host, int port) override
@@ -78,9 +72,14 @@ private:
 		::dump(static_cast<const char*>(data), size);
 	}
 
-	void on_refused(const std::string& host, int port) override
+	void on_failed_to_connect(const std::string& host, int port) override
 	{
-		std::cout << "Connection to " << host << ":" << port << " failed" << std::endl;
+		std::cout << "Failed to connect to " << host << ":" << port << std::endl;
+	}
+
+	void on_stopped(const std::string& host, int port) override
+	{
+		std::cout << "Stopped connecting to " << host << ":" << port << std::endl;
 	}
 
 private:
@@ -100,32 +99,32 @@ public:
 
 private:
 
-	void on_started(const ynet::Link& link) override
+	void on_started(const std::string& address, int port) override
 	{
-		std::cout << "Started at " << link.local_address << ":" << link.local_port << std::endl;
+		std::cout << "Server " << address << ":" << port << " started" << std::endl;
 	}
 
 	void on_connected(const ynet::Link& link, ynet::Socket&) override
 	{
-		std::cout << "Connection to " << link.remote_address << ":" << link.remote_port << " established" << std::endl;
+		std::cout << "Client " << link.remote_address << ":" << link.remote_port << " connected" << std::endl;
 	}
 
 	void on_disconnected(const ynet::Link& link) override
 	{
-		std::cout << "Connection to " << link.remote_address << ":" << link.remote_port << " established" << std::endl;
+		std::cout << "Client " << link.remote_address << ":" << link.remote_port << " disconnected" << std::endl;
 	}
 
 	void on_received(const ynet::Link& link, const void* data, size_t size, ynet::Socket& socket) override
 	{
-		std::cout << "Received " << size << " bytes from " << link.remote_address << ":" << link.remote_port << std::endl;
+		std::cout << "Client " << link.remote_address << ":" << link.remote_port << " sent " << size << " bytes" << std::endl;
 		::dump(static_cast<const char*>(data), size);
 		const std::string reply = "You are " + link.remote_address + ':' + std::to_string(link.remote_port) + "\r\n\r\n";
 		socket.send(reply.data(), reply.size());
 	}
 
-	void on_stopped(const ynet::Link& link) override
+	void on_stopped(const std::string& address, int port) override
 	{
-		std::cout << "Stopped at " << link.local_address << ":" << link.local_port << std::endl;
+		std::cout << "Server " << address << ":" << port << " stopped" << std::endl;
 	}
 
 private:

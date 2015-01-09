@@ -40,22 +40,13 @@ namespace ynet
 				virtual void on_disconnected(Socket socket) = 0;
 			};
 
-			Poller(Socket socket, Callbacks& callbacks): _listening_socket(socket), _callbacks(callbacks) {}
+			Poller(Callbacks& callbacks): _callbacks(callbacks) {}
 
-			explicit operator bool() const { return _listening_socket != InvalidSocket || !_peers.empty(); }
-
-			void poll();
+			void run(Socket socket);
 
 		private:
 
-			void accept();
-
-		private:
-
-			Socket _listening_socket;
 			Callbacks& _callbacks;
-			std::vector<Socket> _peers;
-			std::vector<std::tuple<Socket, bool, bool>> _triggered_peers;
 		};
 	}
 }

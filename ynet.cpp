@@ -9,7 +9,11 @@ namespace ynet
 	{
 	}
 
-	void ClientCallbacks::on_refused(const std::string&, int)
+	void ClientCallbacks::on_failed_to_connect(const std::string&, int)
+	{
+	}
+
+	void ClientCallbacks::on_stopped(const std::string&, int)
 	{
 	}
 
@@ -18,11 +22,11 @@ namespace ynet
 		return std::unique_ptr<Client>(new TcpClient(callbacks, host, port));
 	}
 
-	void ServerCallbacks::on_started(const Link&)
+	void ServerCallbacks::on_started(const std::string&, int)
 	{
 	}
 
-	void ServerCallbacks::on_stopped(const Link&)
+	void ServerCallbacks::on_stopped(const std::string&, int)
 	{
 	}
 

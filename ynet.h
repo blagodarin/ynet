@@ -59,7 +59,10 @@ namespace ynet
 		virtual void on_received(const Link& link, const void* data, size_t size, Socket& socket) = 0;
 
 		//!
-		virtual void on_refused(const std::string& host, int port);
+		virtual void on_failed_to_connect(const std::string& host, int port);
+
+		//!
+		virtual void on_stopped(const std::string& host, int port);
 	};
 
 	//!
@@ -85,7 +88,7 @@ namespace ynet
 		virtual ~ServerCallbacks() = default;
 
 		//!
-		virtual void on_started(const Link& link);
+		virtual void on_started(const std::string& address, int port);
 
 		//!
 		virtual void on_connected(const Link& link, Socket& socket) = 0;
@@ -97,7 +100,7 @@ namespace ynet
 		virtual void on_received(const Link& link, const void* data, size_t size, Socket& socket) = 0;
 
 		//!
-		virtual void on_stopped(const Link& link);
+		virtual void on_stopped(const std::string& address, int port);
 	};
 
 	//!

@@ -9,6 +9,7 @@ namespace ynet
 		, _host(host)
 		, _port(port >= 0 && port <= 65535 ? port : -1)
 		, _port_string(_port >= 0 ? std::to_string(_port) : std::string())
+		, _reconnect_timeout(1000)
 		, _started(false)
 		, _socket(TcpBackend::InvalidSocket)
 		, _closing(false)
@@ -66,8 +67,8 @@ namespace ynet
 
 	void TcpClient::run()
 	{
-		Link link;
 		_callbacks.on_started(_host, _port);
+		Link link;
 		for (bool initial = true; ; )
 		{
 			const auto socket = TcpBackend::connect(_host, _port_string, link);
@@ -79,7 +80,7 @@ namespace ynet
 					if (_closing)
 					{
 						TcpBackend::close(socket);
-						return;
+						break;
 					}
 					_socket = socket;
 				}
@@ -101,12 +102,18 @@ namespace ynet
 			else if (initial)
 			{
 				initial = false;
-				_callbacks.on_refused(_host, _port);
+				_callbacks.on_failed_to_connect(_host, _port);
 			}
 
 			std::unique_lock<std::mutex> lock(_mutex);
-			if (_closing_event.wait_for(lock, std::chrono::seconds(1), [this]() { return _closing; }))
-				return;
+			if (_reconnect_timeout > 0)
+			{
+				if (_closing_event.wait_for(lock, std::chrono::milliseconds(_reconnect_timeout), [this]() { return _closing; }))
+					break;
+			}
+			else if (_closing)
+				break;
 		}
+		_callbacks.on_stopped(_host, _port);
 	}
 }

@@ -140,7 +140,7 @@ namespace ynet
 			::shutdown(socket, SHUT_RD);
 		}
 
-		void Poller::poll()
+		void Poller::run(Socket socket)
 		{
 			const auto make_pollfd = [](Socket socket)
 			{
@@ -151,76 +151,81 @@ namespace ynet
 				return pollfd;
 			};
 
-			std::vector<::pollfd> pollfds;
-			pollfds.reserve(_peers.size() + 1);
-			for (const auto peer_socket : _peers)
-				pollfds.emplace_back(make_pollfd(peer_socket));
-			if (_listening_socket != InvalidSocket)
-				pollfds.emplace_back(make_pollfd(_listening_socket));
-			auto count = ::poll(pollfds.data(), pollfds.size(), -1);
-			assert(count > 0);
-			bool do_accept = false;
-			bool do_stop = false;
-			if (_listening_socket != InvalidSocket)
-			{
-				const auto revents = pollfds.back().revents;
-				pollfds.pop_back();
-				if (revents)
-				{
-					if (revents == POLLIN)
-						do_accept = true;
-					else
-						do_stop = true;
-					--count;
-				}
-			}
-			for (const auto& pollfd : pollfds)
-			{
-				if (!pollfd.revents)
-					continue;
-				bool disconnected = pollfd.revents & (POLLHUP | POLLERR | POLLNVAL);
-				if (pollfd.revents & POLLIN)
-					_callbacks.on_received(pollfd.fd, disconnected);
-				if (disconnected)
-				{
-					for (auto i = _peers.begin(); i != _peers.end(); ++i)
-					{
-						if (*i == pollfd.fd)
-						{
-							_peers.erase(i);
-							break;
-						}
-					}
-					close(pollfd.fd);
-					_callbacks.on_disconnected(pollfd.fd);
-				}
-			}
-			if (do_accept)
-				accept();
-			if (do_stop)
-			{
-				_listening_socket = InvalidSocket;
-				for (const auto socket : _peers)
-					shutdown(socket);
-			}
-		}
+			std::vector<Socket> peers;
 
-		void Poller::accept()
-		{
-			::sockaddr_storage sockaddr;
-			size_t sockaddr_size = sizeof sockaddr;
-			Socket peer = ::accept4(_listening_socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size, SOCK_NONBLOCK);
-			if (peer == InvalidSocket)
-				return;
-			std::string address;
-			int port = -1;
-			if (!convert(sockaddr, address, port))
+			const auto accept = [this, &peers](Socket socket)
 			{
-				close(peer);
-				return;
+				::sockaddr_storage sockaddr;
+				size_t sockaddr_size = sizeof sockaddr;
+				const Socket peer = ::accept4(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size, SOCK_NONBLOCK);
+				if (peer == InvalidSocket)
+					return;
+				std::string address;
+				int port = -1;
+				if (!convert(sockaddr, address, port))
+				{
+					close(peer);
+					return;
+				}
+				peers.emplace_back(peer);
+				_callbacks.on_connected(peer, std::move(address), port);
+			};
+
+			while (socket != InvalidSocket || !peers.empty())
+			{
+				std::vector<::pollfd> pollfds;
+				pollfds.reserve(peers.size() + 1);
+				for (const auto peer : peers)
+					pollfds.emplace_back(make_pollfd(peer));
+				if (socket != InvalidSocket)
+					pollfds.emplace_back(make_pollfd(socket));
+				auto count = ::poll(pollfds.data(), pollfds.size(), -1);
+				assert(count > 0);
+				bool do_accept = false;
+				bool do_stop = false;
+				if (socket != InvalidSocket)
+				{
+					const auto revents = pollfds.back().revents;
+					pollfds.pop_back();
+					if (revents)
+					{
+						if (revents == POLLIN)
+							do_accept = true;
+						else
+							do_stop = true;
+						--count;
+					}
+				}
+				for (const auto& pollfd : pollfds)
+				{
+					if (!pollfd.revents)
+						continue;
+					bool disconnected = pollfd.revents & (POLLHUP | POLLERR | POLLNVAL);
+					if (pollfd.revents & POLLIN)
+						_callbacks.on_received(pollfd.fd, disconnected);
+					if (disconnected)
+					{
+						for (auto i = peers.begin(); i != peers.end(); ++i)
+						{
+							if (*i == pollfd.fd)
+							{
+								peers.erase(i);
+								break;
+							}
+						}
+						close(pollfd.fd);
+						_callbacks.on_disconnected(pollfd.fd);
+					}
+				}
+				if (do_accept)
+					accept(socket);
+				if (do_stop)
+				{
+					socket = InvalidSocket;
+					for (const auto peer : peers)
+						shutdown(peer);
+				}
 			}
-			_peers.emplace_back(peer);
-			_callbacks.on_connected(peer, std::move(address), port);
 		}
 	}
 }

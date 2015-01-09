@@ -32,6 +32,7 @@ namespace ynet
 		const std::string _host;
 		const int _port;
 		const std::string _port_string;
+		const int _reconnect_timeout;
 		bool _started;
 		std::thread _thread;
 		std::mutex _mutex;
