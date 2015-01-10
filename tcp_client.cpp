@@ -11,8 +11,8 @@ namespace ynet
 		, _port_string(_port >= 0 ? std::to_string(_port) : std::string())
 		, _reconnect_timeout(1000)
 		, _socket(TcpBackend::InvalidSocket)
-		, _shutting_down(false)
-		, _closing(false)
+		, _disconnecting(false)
+		, _stopping(false)
 	{
 		if (_port < 0)
 			return; // TODO: Throw.
@@ -26,14 +26,14 @@ namespace ynet
 			assert(_thread.get_id() != std::this_thread::get_id());
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
-				_closing = true;
-				if (_socket != TcpBackend::InvalidSocket && !_shutting_down)
+				_stopping = true;
+				if (_socket != TcpBackend::InvalidSocket && !_disconnecting)
 				{
 					TcpBackend::shutdown(_socket);
-					_shutting_down = true;
+					_disconnecting = true;
 				}
 			}
-			_closing_event.notify_one();
+			_stop_event.notify_one();
 			_thread.join();
 		}
 		assert(_socket == TcpBackend::InvalidSocket);
@@ -48,10 +48,10 @@ namespace ynet
 	void TcpClient::disconnect()
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
-		if (!_shutting_down)
+		if (!_disconnecting)
 		{
 			TcpBackend::shutdown(_socket);
-			_shutting_down = true;
+			_disconnecting = true;
 		}
 	}
 
@@ -68,12 +68,12 @@ namespace ynet
 	bool TcpClient::send(const void* data, size_t size)
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
-		if (_socket == TcpBackend::InvalidSocket || _shutting_down)
+		if (_socket == TcpBackend::InvalidSocket || _disconnecting)
 			return false;
 		auto block = static_cast<const uint8_t*>(data);
 		while (size > 0)
 		{
-			const size_t block_size = std::min(_buffer.size(), size);
+			const size_t block_size = std::min(SendBlockSize, size);
 			if (!TcpBackend::send(_socket, block, block_size))
 				return false;
 			block += block_size;
@@ -85,6 +85,7 @@ namespace ynet
 	void TcpClient::run()
 	{
 		_callbacks.on_started(*this);
+		std::array<unsigned char, ReceiveBlockSize> buffer;
 		for (bool initial = true; ; )
 		{
 			std::string address;
@@ -94,7 +95,7 @@ namespace ynet
 				initial = false;
 				{
 					std::lock_guard<std::mutex> lock(_mutex);
-					if (_closing)
+					if (_stopping)
 					{
 						TcpBackend::close(socket);
 						break;
@@ -105,16 +106,16 @@ namespace ynet
 				_callbacks.on_connected(*this);
 				for (;;)
 				{
-					const size_t size = TcpBackend::recv(_socket, _buffer.data(), _buffer.size(), nullptr);
+					const size_t size = TcpBackend::recv(_socket, buffer.data(), buffer.size(), nullptr);
 					if (size == 0)
 						break;
-					_callbacks.on_received(*this, _buffer.data(), size);
+					_callbacks.on_received(*this, buffer.data(), size);
 				}
 				{
 					std::lock_guard<std::mutex> lock(_mutex);
 					TcpBackend::close(_socket);
 					_socket = TcpBackend::InvalidSocket;
-					_shutting_down = false;
+					_disconnecting = false;
 				}
 				_callbacks.on_disconnected(*this);
 			}
@@ -128,10 +129,10 @@ namespace ynet
 			_address.clear();
 			if (_reconnect_timeout > 0)
 			{
-				if (_closing_event.wait_for(lock, std::chrono::milliseconds(_reconnect_timeout), [this]() { return _closing; }))
+				if (_stop_event.wait_for(lock, std::chrono::milliseconds(_reconnect_timeout), [this]() { return _stopping; }))
 					break;
 			}
-			else if (_closing)
+			else if (_stopping)
 				break;
 		}
 		_callbacks.on_stopped(*this);

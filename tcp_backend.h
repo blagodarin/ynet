@@ -7,17 +7,14 @@
 
 namespace ynet
 {
+	const size_t SendBlockSize = 48 * 1024;
+	const size_t ReceiveBlockSize = 48 * 1024;
+
 	namespace TcpBackend
 	{
 		typedef int Socket;
 
 		const Socket InvalidSocket = -1;
-
-		enum
-		{
-			SocketReceived = 1 << 0,
-			SocketDisconnected = 1 << 1,
-		};
 
 		void close(Socket socket);
 		Socket connect(const std::string& host, const std::string& port, std::string& address);

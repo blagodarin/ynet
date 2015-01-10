@@ -37,9 +37,8 @@ namespace ynet
 		mutable std::mutex _mutex;
 		TcpBackend::Socket _socket;
 		std::string _address;
-		bool _shutting_down;
-		bool _closing;
-		std::condition_variable _closing_event;
-		std::array<unsigned char, 48 * 1024> _buffer;
+		bool _disconnecting;
+		bool _stopping;
+		std::condition_variable _stop_event;
 	};
 }

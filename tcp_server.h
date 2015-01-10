@@ -36,6 +36,6 @@ namespace ynet
 		std::map<TcpBackend::Socket, std::pair<std::string, int>> _peers;
 		std::thread _thread;
 		TcpBackend::Poller _poller;
-		std::array<unsigned char, 48 * 1024> _buffer;
+		std::array<unsigned char, ReceiveBlockSize> _buffer;
 	};
 }

@@ -51,7 +51,7 @@ namespace ynet
 			auto block = static_cast<const uint8_t*>(data);
 			while (size > 0)
 			{
-				const size_t block_size = std::min<size_t>(48 * 1024, size);
+				const size_t block_size = std::min(SendBlockSize, size);
 				if (!TcpBackend::send(_socket, block, block_size))
 					return false;
 				block += block_size;
