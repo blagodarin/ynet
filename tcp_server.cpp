@@ -4,11 +4,11 @@
 
 namespace ynet
 {
-	class TcpServerSocket: public Socket
+	class TcpServerClient: public Client
 	{
 	public:
 
-		TcpServerSocket(TcpBackend::Socket socket, const std::string& address, int port)
+		TcpServerClient(TcpBackend::Socket socket, const std::string& address, int port)
 			: _socket(socket)
 			, _address(address)
 			, _port(port)
@@ -25,13 +25,18 @@ namespace ynet
 			return _address;
 		}
 
-		void close() override
+		void disconnect() override
 		{
 			if (_socket != TcpBackend::InvalidSocket)
 			{
 				TcpBackend::shutdown(_socket);
 				_socket = TcpBackend::InvalidSocket;
 			}
+		}
+
+		std::string host() const override
+		{
+			return std::string();
 		}
 
 		int port() const override
@@ -105,20 +110,20 @@ namespace ynet
 	void TcpServer::on_connected(TcpBackend::Socket socket, std::string&& address, int port)
 	{
 		const auto peer = _peers.emplace(socket, std::make_pair(address, port)).first;
-		TcpServerSocket server_socket(socket, peer->second.first, peer->second.second);
-		_callbacks.on_connected(*this, server_socket);
+		TcpServerClient client(socket, peer->second.first, peer->second.second);
+		_callbacks.on_connected(*this, client);
 	}
 
 	void TcpServer::on_received(TcpBackend::Socket socket, bool& disconnected)
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		TcpServerSocket server_socket(socket, peer->second.first, peer->second.second);
-		while (server_socket)
+		TcpServerClient client(socket, peer->second.first, peer->second.second);
+		while (client)
 		{
 			const size_t size = TcpBackend::recv(socket, _buffer.data(), _buffer.size(), &disconnected);
 			if (size > 0)
-				_callbacks.on_received(*this, server_socket, _buffer.data(), size);
+				_callbacks.on_received(*this, client, _buffer.data(), size);
 			if (size < _buffer.size())
 				break;
 		}
@@ -128,7 +133,7 @@ namespace ynet
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		_callbacks.on_disconnected(*this, TcpServerSocket(socket, peer->second.first, peer->second.second));
+		_callbacks.on_disconnected(*this, TcpServerClient(socket, peer->second.first, peer->second.second));
 		_peers.erase(peer);
 	}
 }
