@@ -12,26 +12,38 @@ namespace ynet
 {
 	namespace
 	{
-		bool convert(const ::sockaddr_storage& sockaddr, std::string& address, int& port)
+		bool convert(const ::sockaddr_storage& sockaddr, std::string& address, int& port, std::string& name)
 		{
 			const auto address_family = sockaddr.ss_family;
 			if (address_family == AF_INET)
 			{
-				char buffer[INET_ADDRSTRLEN];
-				if (::inet_ntop(address_family, &reinterpret_cast<const ::sockaddr_in*>(&sockaddr)->sin_addr, buffer, sizeof buffer))
+				char buffer[INET_ADDRSTRLEN + 1 + 5];
+				char* cursor = buffer;
+				if (::inet_ntop(address_family, &reinterpret_cast<const ::sockaddr_in*>(&sockaddr)->sin_addr, cursor, INET_ADDRSTRLEN))
 				{
-					address = buffer;
+					address = cursor;
 					port = ::ntohs(reinterpret_cast<const ::sockaddr_in*>(&sockaddr)->sin_port);
+					cursor += address.size();
+					*cursor++ = ':';
+					::sprintf(cursor, "%d", port);
+					name = buffer;
 					return true;
 				}
 			}
 			else if (address_family == AF_INET6)
 			{
-				char buffer[INET6_ADDRSTRLEN];
-				if (::inet_ntop(address_family, &reinterpret_cast<const ::sockaddr_in6*>(&sockaddr)->sin6_addr, buffer, sizeof buffer))
+				char buffer[1 + INET6_ADDRSTRLEN + 1 + 5];
+				char* cursor = buffer;
+				*cursor++ = '[';
+				if (::inet_ntop(address_family, &reinterpret_cast<const ::sockaddr_in6*>(&sockaddr)->sin6_addr, cursor, INET6_ADDRSTRLEN))
 				{
-					address = buffer;
+					address = cursor;
 					port = ::ntohs(reinterpret_cast<const ::sockaddr_in6*>(&sockaddr)->sin6_port);
+					cursor += address.size();
+					*cursor++ = ']';
+					*cursor++ = ':';
+					::sprintf(cursor, "%d", port);
+					name = buffer;
 					return true;
 				}
 			}
@@ -46,7 +58,7 @@ namespace ynet
 			::close(socket);
 		}
 
-		Socket connect(const std::string& host, const std::string& port, std::string& address)
+		Socket connect(const std::string& host, const std::string& port, std::string& address, std::string& name)
 		{
 			::addrinfo* addrinfos = nullptr;
 			{
@@ -65,7 +77,7 @@ namespace ynet
 				if (socket == InvalidSocket)
 					continue;
 				int remote_port = -1;
-				if (convert(*reinterpret_cast<const ::sockaddr_storage*>(addrinfo->ai_addr), address, remote_port)
+				if (convert(*reinterpret_cast<const ::sockaddr_storage*>(addrinfo->ai_addr), address, remote_port, name)
 					&& ::connect(socket, addrinfo->ai_addr, addrinfo->ai_addrlen) != -1)
 				{
 					// TODO: Keep-alive.
@@ -78,13 +90,13 @@ namespace ynet
 			return socket;
 		}
 
-		Socket listen(int port, std::string& address)
+		Socket listen(int port, std::string& address, std::string& name)
 		{
 			::sockaddr_storage sockaddr;
 			::memset(&sockaddr, 0, sizeof sockaddr);
 			sockaddr.ss_family = AF_INET;
 			reinterpret_cast<::sockaddr_in*>(&sockaddr)->sin_port = ::htons(port);
-			if (convert(sockaddr, address, port))
+			if (convert(sockaddr, address, port, name))
 			{
 				const Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 				if (socket != InvalidSocket)
@@ -156,14 +168,15 @@ namespace ynet
 				if (peer == InvalidSocket)
 					return;
 				std::string address;
+				std::string name;
 				int port = -1;
-				if (!convert(sockaddr, address, port))
+				if (!convert(sockaddr, address, port, name))
 				{
 					close(peer);
 					return;
 				}
 				peers.emplace_back(peer);
-				_callbacks.on_connected(peer, std::move(address), port);
+				_callbacks.on_connected(peer, std::move(address), port, std::move(name));
 			};
 
 			while (socket != InvalidSocket || !peers.empty())

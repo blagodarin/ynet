@@ -17,8 +17,8 @@ namespace ynet
 		const Socket InvalidSocket = -1;
 
 		void close(Socket socket);
-		Socket connect(const std::string& host, const std::string& port, std::string& address);
-		Socket listen(int port, std::string& address);
+		Socket connect(const std::string& host, const std::string& port, std::string& address, std::string& name);
+		Socket listen(int port, std::string& address, std::string& name);
 		size_t recv(Socket socket, void* data, size_t size, bool* disconnected);
 		bool send(Socket socket, const void* data, size_t size);
 		void shutdown(Socket socket);
@@ -32,7 +32,7 @@ namespace ynet
 			{
 			public:
 
-				virtual void on_connected(Socket socket, std::string&& address, int port) = 0;
+				virtual void on_connected(Socket socket, std::string&& address, int port, std::string&& name) = 0;
 				virtual void on_received(Socket socket, bool& disconnected) = 0;
 				virtual void on_disconnected(Socket socket) = 0;
 			};

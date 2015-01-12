@@ -60,6 +60,12 @@ namespace ynet
 		return _host;
 	}
 
+	std::string TcpClient::name() const
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		return _name;
+	}
+
 	int TcpClient::port() const
 	{
 		return _port;
@@ -89,7 +95,8 @@ namespace ynet
 		for (bool initial = true; ; )
 		{
 			std::string address;
-			const auto socket = TcpBackend::connect(_host, _port_string, address);
+			std::string name;
+			const auto socket = TcpBackend::connect(_host, _port_string, address, name);
 			if (socket != TcpBackend::InvalidSocket)
 			{
 				initial = false;
@@ -101,7 +108,8 @@ namespace ynet
 						break;
 					}
 					_socket = socket;
-					_address = address;
+					_address = std::move(address);
+					_name = std::move(name);
 				}
 				_callbacks.on_connected(*this);
 				for (;;)

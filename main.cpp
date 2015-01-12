@@ -52,20 +52,20 @@ private:
 
 	void on_connected(ynet::Client& client) override
 	{
-		std::cout << "Connected to " << client.address() << ":" << client.port() << std::endl;
+		std::cout << "Connected to " << client.name() << std::endl;
 		const std::string request = "GET / HTTP/1.1\r\n\r\n";
 		client.send(request.data(), request.size());
 	}
 
 	void on_received(ynet::Client& client, const void* data, size_t size) override
 	{
-		std::cout << "Received " << size << " bytes from " << client.address() << ":" << client.port() << std::endl;
+		std::cout << "Received " << size << " bytes from " << client.name() << std::endl;
 		::dump(static_cast<const char*>(data), size);
 	}
 
 	void on_disconnected(const ynet::Client& client) override
 	{
-		std::cout << "Disconnected from " << client.address() << ":" << client.port() << std::endl;
+		std::cout << "Disconnected from " << client.name() << std::endl;
 	}
 
 	void on_failed_to_connect(const ynet::Client& client) override
@@ -96,30 +96,30 @@ private:
 
 	void on_started(const ynet::Server& server) override
 	{
-		std::cout << "Server " << server.address() << ":" << server.port() << " started" << std::endl;
+		std::cout << "Server " << server.name() << " started" << std::endl;
 	}
 
 	void on_connected(const ynet::Server&, ynet::Client& client) override
 	{
-		std::cout << "Client " << client.address() << ":" << client.port() << " connected" << std::endl;
+		std::cout << "Client " << client.name() << " connected" << std::endl;
 	}
 
 	void on_received(const ynet::Server&, ynet::Client& client, const void* data, size_t size) override
 	{
-		std::cout << "Client " << client.address() << ":" << client.port() << " sent " << size << " bytes" << std::endl;
+		std::cout << "Client " << client.name() << " sent " << size << " bytes" << std::endl;
 		::dump(static_cast<const char*>(data), size);
-		const std::string reply = "You are " + client.address() + ':' + std::to_string(client.port()) + "\r\n\r\n";
+		const std::string reply = "You are " + client.name() + "\r\n\r\n";
 		client.send(reply.data(), reply.size());
 	}
 
 	void on_disconnected(const ynet::Server&, const ynet::Client& client) override
 	{
-		std::cout << "Client " << client.address() << ":" << client.port() << " disconnected" << std::endl;
+		std::cout << "Client " << client.name() << " disconnected" << std::endl;
 	}
 
 	void on_stopped(const ynet::Server& server) override
 	{
-		std::cout << "Server " << server.address() << ":" << server.port() << " stopped" << std::endl;
+		std::cout << "Server " << server.name() << " stopped" << std::endl;
 	}
 
 private:

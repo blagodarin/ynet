@@ -56,6 +56,9 @@ namespace ynet
 		//! \return Host as specified in Client::create, or an empty string if it is a server client.
 		virtual std::string host() const = 0;
 
+		//!
+		virtual std::string name() const = 0;
+
 		//! Get the remote port.
 		//! \return Remote port.
 		virtual int port() const = 0;
@@ -103,6 +106,9 @@ namespace ynet
 
 		//!
 		virtual std::string address() const = 0;
+
+		//!
+		virtual std::string name() const = 0;
 
 		//!
 		virtual int port() const = 0;

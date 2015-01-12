@@ -19,6 +19,7 @@ namespace ynet
 		std::string address() const override;
 		void disconnect() override;
 		std::string host() const override;
+		std::string name() const override;
 		int port() const override;
 		bool send(const void* data, size_t size) override;
 
@@ -37,6 +38,7 @@ namespace ynet
 		mutable std::mutex _mutex;
 		TcpBackend::Socket _socket;
 		std::string _address;
+		std::string _name;
 		bool _disconnecting;
 		bool _stopping;
 		std::condition_variable _stop_event;

@@ -4,68 +4,63 @@
 
 namespace ynet
 {
-	class TcpServerClient: public Client
+	TcpServer::Peer::Peer(TcpBackend::Socket socket, std::string&& address, int port, std::string&& name)
+		: _socket(socket)
+		, _address(std::move(address))
+		, _port(port)
+		, _name(std::move(name))
 	{
-	public:
+	}
 
-		TcpServerClient(TcpBackend::Socket socket, const std::string& address, int port)
-			: _socket(socket)
-			, _address(address)
-			, _port(port)
+	std::string TcpServer::Peer::address() const
+	{
+		return _address;
+	}
+
+	void TcpServer::Peer::disconnect()
+	{
+		if (_socket != TcpBackend::InvalidSocket)
 		{
+			TcpBackend::shutdown(_socket);
+			_socket = TcpBackend::InvalidSocket;
 		}
+	}
 
-		explicit operator bool() const
-		{
-			return _socket != TcpBackend::InvalidSocket;
-		}
+	std::string TcpServer::Peer::host() const
+	{
+		return std::string();
+	}
 
-		std::string address() const override
-		{
-			return _address;
-		}
+	std::string TcpServer::Peer::name() const
+	{
+		return _name;
+	}
 
-		void disconnect() override
-		{
-			if (_socket != TcpBackend::InvalidSocket)
-			{
-				TcpBackend::shutdown(_socket);
-				_socket = TcpBackend::InvalidSocket;
-			}
-		}
+	int TcpServer::Peer::port() const
+	{
+		return _port;
+	}
 
-		std::string host() const override
+	bool TcpServer::Peer::send(const void* data, size_t size)
+	{
+		if (_socket == TcpBackend::InvalidSocket)
+			return false;
+		auto block = static_cast<const uint8_t*>(data);
+		while (size > 0)
 		{
-			return std::string();
-		}
-
-		int port() const override
-		{
-			return _port;
-		}
-
-		bool send(const void* data, size_t size) override
-		{
-			if (_socket == TcpBackend::InvalidSocket)
+			const size_t block_size = std::min(SendBlockSize, size);
+			if (!TcpBackend::send(_socket, block, block_size))
 				return false;
-			auto block = static_cast<const uint8_t*>(data);
-			while (size > 0)
-			{
-				const size_t block_size = std::min(SendBlockSize, size);
-				if (!TcpBackend::send(_socket, block, block_size))
-					return false;
-				block += block_size;
-				size -= block_size;
-			}
-			return true;
+			block += block_size;
+			size -= block_size;
 		}
+		return true;
+	}
 
-	private:
-
-		TcpBackend::Socket _socket;
-		const std::string& _address;
-		const int _port;
-	};
+	TcpServer::Peer::operator bool() const
+	{
+		return _socket != TcpBackend::InvalidSocket;
+	}
 
 	TcpServer::TcpServer(ServerCallbacks& callbacks, int port)
 		: _callbacks(callbacks)
@@ -75,7 +70,7 @@ namespace ynet
 	{
 		if (_port < 0)
 			return; // TODO: Throw.
-		_socket = TcpBackend::listen(_port, _address);
+		_socket = TcpBackend::listen(_port, _address, _name);
 		if (_socket == TcpBackend::InvalidSocket)
 			return; // TODO: Retry.
 		_thread = std::thread(std::bind(&TcpServer::run, this));
@@ -95,6 +90,11 @@ namespace ynet
 		return _address;
 	}
 
+	std::string TcpServer::name() const
+	{
+		return _name;
+	}
+
 	int TcpServer::port() const
 	{
 		return _port;
@@ -107,23 +107,21 @@ namespace ynet
 		_callbacks.on_stopped(*this);
 	}
 
-	void TcpServer::on_connected(TcpBackend::Socket socket, std::string&& address, int port)
+	void TcpServer::on_connected(TcpBackend::Socket socket, std::string&& address, int port, std::string&& name)
 	{
-		const auto peer = _peers.emplace(socket, std::make_pair(address, port)).first;
-		TcpServerClient client(socket, peer->second.first, peer->second.second);
-		_callbacks.on_connected(*this, client);
+		const auto peer = _peers.emplace(socket, Peer(socket, std::move(address), port, std::move(name))).first;
+		_callbacks.on_connected(*this, peer->second);
 	}
 
 	void TcpServer::on_received(TcpBackend::Socket socket, bool& disconnected)
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		TcpServerClient client(socket, peer->second.first, peer->second.second);
-		while (client)
+		while (peer->second)
 		{
 			const size_t size = TcpBackend::recv(socket, _buffer.data(), _buffer.size(), &disconnected);
 			if (size > 0)
-				_callbacks.on_received(*this, client, _buffer.data(), size);
+				_callbacks.on_received(*this, peer->second, _buffer.data(), size);
 			if (size < _buffer.size())
 				break;
 		}
@@ -133,7 +131,7 @@ namespace ynet
 	{
 		const auto peer = _peers.find(socket);
 		assert(peer != _peers.end());
-		_callbacks.on_disconnected(*this, TcpServerClient(socket, peer->second.first, peer->second.second));
+		_callbacks.on_disconnected(*this, peer->second);
 		_peers.erase(peer);
 	}
 }
