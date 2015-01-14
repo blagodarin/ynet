@@ -34,7 +34,7 @@ namespace
 	}
 }
 
-class Client: public ynet::ClientCallbacks
+class Client: public ynet::Client::Callbacks
 {
 public:
 
@@ -50,22 +50,22 @@ private:
 		std::cout << "Started connecting to " << client.host() << ":" << client.port() << std::endl;
 	}
 
-	void on_connected(ynet::Client& client) override
+	void on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection) override
 	{
-		std::cout << "Connected to " << client.name() << std::endl;
+		std::cout << "Connected to " << connection->name() << std::endl;
 		const std::string request = "GET / HTTP/1.1\r\n\r\n";
-		client.send(request.data(), request.size());
+		connection->send(request.data(), request.size());
 	}
 
-	void on_received(ynet::Client& client, const void* data, size_t size) override
+	void on_received(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size) override
 	{
-		std::cout << "Received " << size << " bytes from " << client.name() << std::endl;
+		std::cout << "Received " << size << " bytes from " << connection->name() << std::endl;
 		::dump(static_cast<const char*>(data), size);
 	}
 
-	void on_disconnected(const ynet::Client& client) override
+	void on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection) override
 	{
-		std::cout << "Disconnected from " << client.name() << std::endl;
+		std::cout << "Disconnected from " << connection->name() << std::endl;
 	}
 
 	void on_failed_to_connect(const ynet::Client& client) override
@@ -83,7 +83,7 @@ private:
 	std::unique_ptr<ynet::Client> _client;
 };
 
-class Server: public ynet::ServerCallbacks
+class Server: public ynet::Server::Callbacks
 {
 public:
 
@@ -99,22 +99,22 @@ private:
 		std::cout << "Server " << server.name() << " started" << std::endl;
 	}
 
-	void on_connected(const ynet::Server&, ynet::Client& client) override
+	void on_connected(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection) override
 	{
-		std::cout << "Client " << client.name() << " connected" << std::endl;
+		std::cout << "Client " << connection->name() << " connected" << std::endl;
 	}
 
-	void on_received(const ynet::Server&, ynet::Client& client, const void* data, size_t size) override
+	void on_received(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size) override
 	{
-		std::cout << "Client " << client.name() << " sent " << size << " bytes" << std::endl;
+		std::cout << "Client " << connection->name() << " sent " << size << " bytes" << std::endl;
 		::dump(static_cast<const char*>(data), size);
-		const std::string reply = "You are " + client.name() + "\r\n\r\n";
-		client.send(reply.data(), reply.size());
+		const std::string reply = "You are " + connection->name() + "\r\n\r\n";
+		connection->send(reply.data(), reply.size());
 	}
 
-	void on_disconnected(const ynet::Server&, const ynet::Client& client) override
+	void on_disconnected(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection) override
 	{
-		std::cout << "Client " << client.name() << " disconnected" << std::endl;
+		std::cout << "Client " << connection->name() << " disconnected" << std::endl;
 	}
 
 	void on_stopped(const ynet::Server& server) override

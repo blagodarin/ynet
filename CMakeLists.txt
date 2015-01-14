@@ -5,5 +5,6 @@ add_executable(ynet
 	main.cpp
 	tcp_backend.cpp
 	tcp_client.cpp
+	tcp_connection.cpp
 	tcp_server.cpp
 	ynet.cpp)
