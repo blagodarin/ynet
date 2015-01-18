@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -28,7 +29,7 @@ namespace ynet
 
 		//! Get the remote port.
 		//! \return Remote port.
-		virtual int port() const = 0;
+		virtual uint16_t port() const = 0;
 
 		//! Send a message to the remote party synchronously.
 		//! \return \c true if the message was sent.
@@ -68,7 +69,7 @@ namespace ynet
 		};
 
 		//!
-		static std::unique_ptr<Client> create(Callbacks& callbacks, const std::string& host, int port);
+		static std::unique_ptr<Client> create(Callbacks& callbacks, const std::string& host, uint16_t port);
 
 		virtual ~Client() = default;
 
@@ -78,7 +79,7 @@ namespace ynet
 
 		//! Get the port to connect to.
 		//! \return Port.
-		virtual int port() const = 0;
+		virtual uint16_t port() const = 0;
 	};
 
 	//! Network server.
@@ -93,6 +94,9 @@ namespace ynet
 		public:
 
 			virtual ~Callbacks() = default;
+
+			//!
+			virtual void on_failed_to_start(const Server& server);
 
 			//!
 			virtual void on_started(const Server& server);
@@ -111,7 +115,7 @@ namespace ynet
 		};
 
 		//!
-		static std::unique_ptr<Server> create(Callbacks& callbacks, int port);
+		static std::unique_ptr<Server> create(Callbacks& callbacks, uint16_t port);
 
 		virtual ~Server() = default;
 
@@ -122,6 +126,6 @@ namespace ynet
 		virtual std::string name() const = 0;
 
 		//!
-		virtual int port() const = 0;
+		virtual uint16_t port() const = 0;
 	};
 }

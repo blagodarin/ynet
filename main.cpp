@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <iostream>
 
-#include "ynet.h"
+#include <ynet.h>
 
 namespace
 {
@@ -93,6 +93,11 @@ public:
 	}
 
 private:
+
+	void on_failed_to_start(const ynet::Server& server) override
+	{
+		std::cout << "Server " << server.name() << " failed to start" << std::endl;
+	}
 
 	void on_started(const ynet::Server& server) override
 	{
