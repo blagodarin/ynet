@@ -3,11 +3,8 @@
 #include <cassert>
 #include <cstring>
 #include <map>
-#include <system_error>
-#include <vector>
 
-#include <arpa/inet.h>
-#include <netdb.h>
+#include <netinet/in.h>
 #include <poll.h>
 #include <unistd.h>
 
@@ -161,43 +158,15 @@ namespace ynet
 		stop();
 	}
 
-	std::shared_ptr<Connection> TcpClient::connect(const std::string& host, const std::string& port)
+	std::shared_ptr<Connection> TcpClient::connect(const ::sockaddr_storage& sockaddr)
 	{
-		struct Resolver
-		{
-			::addrinfo* _addrinfos = nullptr;
-
-			Resolver(const std::string& host, const std::string& port)
-			{
-				::addrinfo hints;
-				::memset(&hints, 0, sizeof hints);
-				hints.ai_family = AF_UNSPEC;
-				hints.ai_socktype = SOCK_STREAM;
-				hints.ai_protocol = IPPROTO_TCP;
-				::getaddrinfo(host.c_str(), port.c_str(), &hints, &_addrinfos);
-			}
-
-			~Resolver()
-			{
-				if (_addrinfos)
-					::freeaddrinfo(_addrinfos);
-			}
-		};
-
-		Resolver resolver(host, port);
-		for (const auto* addrinfo = resolver._addrinfos; addrinfo; addrinfo = addrinfo->ai_next)
-		{
-			if (addrinfo->ai_family != AF_INET && addrinfo->ai_family != AF_INET6)
-				continue;
-			TcpSocket socket = ::socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
-			if (!socket)
-				continue;
-			if (::connect(socket.get(), addrinfo->ai_addr, addrinfo->ai_addrlen) == -1)
-				continue;
-			// TODO: Keep-alive.
-			return std::shared_ptr<Connection>(new TcpConnection(*reinterpret_cast<const ::sockaddr_storage*>(addrinfo->ai_addr), std::move(socket)));
-		}
-		return {};
+		TcpSocket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
+		if (!socket)
+			return {};
+		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
+			return {};
+		// TODO: Keep-alive.
+		return std::shared_ptr<Connection>(new TcpConnection(sockaddr, std::move(socket)));
 	}
 
 	size_t TcpClient::receive_buffer_size() const

@@ -5,6 +5,8 @@
 
 #include <ynet.h>
 
+struct sockaddr_storage;
+
 namespace ynet
 {
 	class ConnectionImpl;
@@ -24,7 +26,7 @@ namespace ynet
 
 	protected:
 
-		virtual std::shared_ptr<Connection> connect(const std::string& host, const std::string& port) = 0;
+		virtual std::shared_ptr<Connection> connect(const ::sockaddr_storage& sockaddr) = 0;
 		virtual size_t receive_buffer_size() const = 0;
 
 	private:

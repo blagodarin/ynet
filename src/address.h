@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <sys/socket.h>
 
@@ -24,4 +25,12 @@ namespace ynet
 		Address& operator=(const Address&) = delete;
 		Address& operator=(Address&&) = default;
 	};
+
+	enum class Protocol
+	{
+		Tcp,
+		Udp,
+	};
+
+	std::vector<::sockaddr_storage> resolve(const std::string& host, Protocol protocol, const std::string& port);
 }

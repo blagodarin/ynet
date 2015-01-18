@@ -1,7 +1,6 @@
 #include "client.h"
 
 #include <cassert>
-#include <vector>
 
 #include "connection.h"
 #include "trigger.h"
@@ -52,12 +51,24 @@ namespace ynet
 
 	void ClientImpl::run()
 	{
+		const auto resolve_and_connect = [this]() -> std::shared_ptr<Connection>
+		{
+			// TODO: Get rid of an explicit TCP here.
+			for (const auto& address : resolve(_host, Protocol::Tcp, _port_string))
+			{
+				const auto& connection = connect(address);
+				if (connection)
+					return connection;
+			}
+			return {};
+		};
+
 		_callbacks.on_started(*this);
 		std::vector<uint8_t> buffer(receive_buffer_size());
 		for (bool initial = true; ; )
 		{
 			{
-				const auto& connection = connect(_host, _port_string);
+				const auto& connection = resolve_and_connect();
 				if (connection)
 				{
 					initial = false;

@@ -4,6 +4,7 @@
 #include <system_error>
 
 #include <arpa/inet.h>
+#include <netdb.h>
 
 namespace ynet
 {
@@ -67,5 +68,52 @@ namespace ynet
 		}
 		else
 			throw std::system_error(EAFNOSUPPORT, std::generic_category());
+	}
+
+	std::vector<::sockaddr_storage> resolve(const std::string& host, Protocol protocol, const std::string& port)
+	{
+		struct Resolver
+		{
+			::addrinfo* addrinfos = nullptr;
+
+			Resolver(const std::string& host, Protocol protocol, const std::string& port)
+			{
+				::addrinfo hints;
+				::memset(&hints, 0, sizeof hints);
+				hints.ai_family = AF_UNSPEC;
+				switch (protocol)
+				{
+				case Protocol::Tcp:
+					hints.ai_socktype = SOCK_STREAM;
+					hints.ai_protocol = IPPROTO_TCP;
+					break;
+				case Protocol::Udp:
+					hints.ai_socktype = SOCK_DGRAM;
+					hints.ai_protocol = IPPROTO_UDP;
+					break;
+				default:
+					std::invalid_argument("'protocol' must be either TCP or UDP");
+				}
+				::getaddrinfo(host.c_str(), port.c_str(), &hints, &addrinfos);
+			}
+
+			~Resolver()
+			{
+				if (addrinfos)
+					::freeaddrinfo(addrinfos);
+			}
+		};
+
+		const Resolver resolver(host, protocol, port);
+		std::vector<::sockaddr_storage> addresses;
+		for (const auto* addrinfo = resolver.addrinfos; addrinfo; addrinfo = addrinfo->ai_next)
+		{
+			if (addrinfo->ai_family != AF_INET && addrinfo->ai_family != AF_INET6)
+				continue;
+			::sockaddr_storage sockaddr;
+			::memcpy(&sockaddr, addrinfo->ai_addr, addrinfo->ai_addrlen);
+			addresses.emplace_back(sockaddr);
+		}
+		return addresses;
 	}
 }
