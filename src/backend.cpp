@@ -111,7 +111,6 @@ namespace ynet
 				switch (errno)
 				{
 				case ECONNRESET:
-				case EPIPE:
 					_closed = true;
 					return false;
 				default:
@@ -139,9 +138,11 @@ namespace ynet
 				case EWOULDBLOCK:
 			#endif
 					return 0;
+				case ECONNRESET:
+					if (disconnected)
+						*disconnected = true;
+					return 0;
 				default:
-					// TODO: Handle ECONNRESET?
-					// TODO: Handle EPIPE?
 					throw std::system_error(errno, std::generic_category());
 				}
 			}
@@ -179,7 +180,6 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		// TODO: Keep-alive.
 		return std::shared_ptr<Connection>(new TcpConnection(sockaddr, std::move(socket)));
 	}
 
