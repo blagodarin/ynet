@@ -12,8 +12,6 @@
 
 namespace ynet
 {
-	// Qt recommends sending TCP data in blocks of at most 48 KiB... better than nothing.
-	// There's nothing bad in receiving in such blocks either.
 	const size_t TcpBufferSize = 48 * 1024;
 
 	class TcpSocket
@@ -107,17 +105,24 @@ namespace ynet
 			std::lock_guard<std::mutex> lock(_mutex);
 			if (_closed)
 				return false;
-			auto block = static_cast<const uint8_t*>(data);
-			while (size > 0)
+			const auto sent_size = ::send(_socket.get(), data, size, MSG_NOSIGNAL);
+			if (sent_size == -1)
 			{
-				const auto block_size = std::min(TcpBufferSize, size);
-				if (::send(_socket.get(), block, block_size, 0) != static_cast<ssize_t>(block_size))
+				switch (errno)
 				{
-					// TODO: Disconnect?
+				case ECONNRESET:
+				case EPIPE:
+					_closed = true;
 					return false;
+				default:
+					// TODO: Handle ETIMEDOUT?
+					throw std::system_error(errno, std::generic_category());
 				}
-				block += block_size;
-				size -= block_size;
+			}
+			else if (static_cast<size_t>(sent_size) != size)
+			{
+				// TODO: Can TCP have -1 < sent_size < size?
+				throw std::logic_error("size == " + std::to_string(size) + ", sent_size == " + std::to_string(sent_size));
 			}
 			return true;
 		}
@@ -125,16 +130,25 @@ namespace ynet
 		size_t receive(void* data, size_t size, bool* disconnected) override
 		{
 			const auto received_size = ::recv(_socket.get(), data, size, 0);
-			if (received_size == 0)
+			if (received_size == -1)
+			{
+				switch (errno)
+				{
+				case EAGAIN:
+			#if EWOULDBLOCK != EAGAIN
+				case EWOULDBLOCK:
+			#endif
+					return 0;
+				default:
+					// TODO: Handle ECONNRESET?
+					// TODO: Handle EPIPE?
+					throw std::system_error(errno, std::generic_category());
+				}
+			}
+			else if (received_size == 0)
 			{
 				if (disconnected)
 					*disconnected = true;
-				return 0;
-			}
-			else if (received_size == -1)
-			{
-				if (disconnected)
-					*disconnected = errno != EAGAIN && errno != EWOULDBLOCK;
 				return 0;
 			}
 			else
