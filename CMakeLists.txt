@@ -4,9 +4,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pthread -std=gnu++11 -Wall")
 include_directories(include)
 add_executable(ynet
 	src/address.cpp
-	src/backend.cpp
 	src/client.cpp
 	src/connection.cpp
 	src/server.cpp
+	src/tcp.cpp
 	src/ynet.cpp
 	main.cpp)

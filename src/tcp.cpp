@@ -1,4 +1,4 @@
-#include "backend.h"
+#include "tcp.h"
 
 #include <cassert>
 #include <cstring>
@@ -114,15 +114,11 @@ namespace ynet
 					_closed = true;
 					return false;
 				default:
-					// TODO: Handle ETIMEDOUT?
 					throw std::system_error(errno, std::generic_category());
 				}
 			}
 			else if (static_cast<size_t>(sent_size) != size)
-			{
-				// TODO: Can TCP have -1 < sent_size < size?
 				throw std::logic_error("size == " + std::to_string(size) + ", sent_size == " + std::to_string(sent_size));
-			}
 			return true;
 		}
 
