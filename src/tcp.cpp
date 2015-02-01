@@ -169,14 +169,14 @@ namespace ynet
 		stop();
 	}
 
-	std::shared_ptr<Connection> TcpClient::connect(const ::sockaddr_storage& sockaddr)
+	std::unique_ptr<ConnectionImpl> TcpClient::connect(const ::sockaddr_storage& sockaddr)
 	{
 		TcpSocket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (!socket)
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		return std::shared_ptr<Connection>(new TcpConnection(sockaddr, std::move(socket)));
+		return std::unique_ptr<ConnectionImpl>(new TcpConnection(sockaddr, std::move(socket)));
 	}
 
 	size_t TcpClient::receive_buffer_size() const

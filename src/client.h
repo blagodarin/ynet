@@ -26,7 +26,7 @@ namespace ynet
 
 	protected:
 
-		virtual std::shared_ptr<Connection> connect(const ::sockaddr_storage& sockaddr) = 0;
+		virtual std::unique_ptr<ConnectionImpl> connect(const ::sockaddr_storage& sockaddr) = 0;
 		virtual size_t receive_buffer_size() const = 0;
 
 	private:
@@ -38,7 +38,6 @@ namespace ynet
 		Callbacks& _callbacks;
 		const std::string _host;
 		const uint16_t _port;
-		const std::string _port_string;
 		const int _reconnect_timeout;
 		std::mutex _mutex;
 		ConnectionImpl* _connection;

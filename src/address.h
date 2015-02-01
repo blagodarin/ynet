@@ -26,11 +26,5 @@ namespace ynet
 		Address& operator=(Address&&) = default;
 	};
 
-	enum class Protocol
-	{
-		Tcp,
-		Udp,
-	};
-
-	std::vector<::sockaddr_storage> resolve(const std::string& host, Protocol protocol, const std::string& port);
+	std::vector<::sockaddr_storage> resolve(const std::string& host, uint16_t port);
 }

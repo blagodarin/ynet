@@ -29,7 +29,7 @@ namespace ynet
 			return sockaddr_storage;
 		}
 
-		throw std::invalid_argument("'address' must be a valid IPv4/IPv6 address");
+		throw std::logic_error("Only IPv4/IPv6 addresses are supported");
 		// It may also be that the system doesn't support IPv6 (or both IPv4 and IPv6).
 	}
 
@@ -56,7 +56,7 @@ namespace ynet
 			char buffer[1 + INET6_ADDRSTRLEN + 1 + 1 + 5]; // '[ipv6]:port'.
 			char* cursor = buffer;
 			*cursor++ = '[';
-			if (::inet_ntop(AF_INET6, &sockaddr_in6.sin6_addr, cursor, INET6_ADDRSTRLEN))
+			if (!::inet_ntop(AF_INET6, &sockaddr_in6.sin6_addr, cursor, INET6_ADDRSTRLEN))
 				throw std::system_error(errno, std::generic_category());
 			_address = cursor;
 			_port = ::ntohs(sockaddr_in6.sin6_port);
@@ -67,34 +67,24 @@ namespace ynet
 			_name = buffer;
 		}
 		else
-			throw std::system_error(EAFNOSUPPORT, std::generic_category());
+			throw std::logic_error("Only IPv4/IPv6 addresses are supported");
 	}
 
-	std::vector<::sockaddr_storage> resolve(const std::string& host, Protocol protocol, const std::string& port)
+	std::vector<::sockaddr_storage> resolve(const std::string& host, uint16_t port)
 	{
 		struct Resolver
 		{
 			::addrinfo* addrinfos = nullptr;
 
-			Resolver(const std::string& host, Protocol protocol, const std::string& port)
+			Resolver(const std::string& host)
 			{
 				::addrinfo hints;
 				::memset(&hints, 0, sizeof hints);
 				hints.ai_family = AF_UNSPEC;
-				switch (protocol)
-				{
-				case Protocol::Tcp:
-					hints.ai_socktype = SOCK_STREAM;
-					hints.ai_protocol = IPPROTO_TCP;
-					break;
-				case Protocol::Udp:
-					hints.ai_socktype = SOCK_DGRAM;
-					hints.ai_protocol = IPPROTO_UDP;
-					break;
-				default:
-					std::invalid_argument("'protocol' must be either TCP or UDP");
-				}
-				::getaddrinfo(host.c_str(), port.c_str(), &hints, &addrinfos);
+				// The soket type field isn't required for address resolution,
+				// but prevents getaddrinfo returning multiple addresses with different socket types.
+				hints.ai_socktype = SOCK_STREAM;
+				::getaddrinfo(host.c_str(), nullptr, &hints, &addrinfos);
 			}
 
 			~Resolver()
@@ -104,14 +94,25 @@ namespace ynet
 			}
 		};
 
-		const Resolver resolver(host, protocol, port);
+		const Resolver resolver(host);
 		std::vector<::sockaddr_storage> addresses;
 		for (const auto* addrinfo = resolver.addrinfos; addrinfo; addrinfo = addrinfo->ai_next)
 		{
-			if (addrinfo->ai_family != AF_INET && addrinfo->ai_family != AF_INET6)
-				continue;
 			::sockaddr_storage sockaddr;
-			::memcpy(&sockaddr, addrinfo->ai_addr, addrinfo->ai_addrlen);
+			if (addrinfo->ai_family == AF_INET)
+			{
+				::sockaddr_in& sockaddr_in = *reinterpret_cast<::sockaddr_in*>(&sockaddr);
+				::memcpy(&sockaddr_in, addrinfo->ai_addr, sizeof sockaddr_in);
+				sockaddr_in.sin_port = ::htons(port);
+			}
+			else if (addrinfo->ai_family != AF_INET6)
+			{
+				::sockaddr_in6& sockaddr_in6 = *reinterpret_cast<::sockaddr_in6*>(&sockaddr);
+				::memcpy(&sockaddr_in6, addrinfo->ai_addr, sizeof sockaddr_in6);
+				sockaddr_in6.sin6_port = ::htons(port);
+			}
+			else
+				continue;
 			addresses.emplace_back(sockaddr);
 		}
 		return addresses;

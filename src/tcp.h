@@ -14,7 +14,7 @@ namespace ynet
 
 	protected:
 
-		std::shared_ptr<Connection> connect(const ::sockaddr_storage& sockaddr) override;
+		std::unique_ptr<ConnectionImpl> connect(const ::sockaddr_storage& sockaddr) override;
 		size_t receive_buffer_size() const override;
 	};
 

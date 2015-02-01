@@ -11,7 +11,6 @@ namespace ynet
 		: _callbacks(callbacks)
 		, _host(host)
 		, _port(port)
-		, _port_string(std::to_string(_port))
 		, _reconnect_timeout(1000)
 		, _connection(nullptr)
 		, _stopping(false)
@@ -51,12 +50,11 @@ namespace ynet
 
 	void ClientImpl::run()
 	{
-		const auto resolve_and_connect = [this]() -> std::shared_ptr<Connection>
+		const auto resolve_and_connect = [this]() -> std::unique_ptr<ConnectionImpl>
 		{
-			// TODO: Get rid of an explicit TCP here.
-			for (const auto& address : resolve(_host, Protocol::Tcp, _port_string))
+			for (const auto& address : resolve(_host, _port))
 			{
-				const auto& connection = connect(address);
+				auto connection = connect(address);
 				if (connection)
 					return connection;
 			}
@@ -68,7 +66,7 @@ namespace ynet
 		for (bool initial = true; ; )
 		{
 			{
-				const auto& connection = resolve_and_connect();
+				auto connection = resolve_and_connect();
 				if (connection)
 				{
 					initial = false;
@@ -76,22 +74,23 @@ namespace ynet
 						std::lock_guard<std::mutex> lock(_mutex);
 						if (_stopping)
 							break;
-						_connection = static_cast<ConnectionImpl*>(connection.get());
+						_connection = connection.get();
 					}
-					_callbacks.on_connected(*this, connection);
+					const std::shared_ptr<Connection> connection_ptr = std::move(connection);
+					_callbacks.on_connected(*this, connection_ptr);
 					for (;;)
 					{
 						const size_t size = _connection->receive(buffer.data(), buffer.size(), nullptr);
 						if (size == 0)
 							break;
-						_callbacks.on_received(*this, connection, buffer.data(), size);
+						_callbacks.on_received(*this, connection_ptr, buffer.data(), size);
 					}
-					connection->close();
+					connection_ptr->close();
 					{
 						std::lock_guard<std::mutex> lock(_mutex);
 						_connection = nullptr;
 					}
-					_callbacks.on_disconnected(*this, connection);
+					_callbacks.on_disconnected(*this, connection_ptr);
 				}
 				else if (initial)
 				{
