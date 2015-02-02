@@ -69,7 +69,15 @@ namespace ynet
 		};
 
 		//!
-		static std::unique_ptr<Client> create(Callbacks& callbacks, const std::string& host, uint16_t port);
+		struct Options
+		{
+			unsigned reconnect_timeout; //!<
+
+			Options();
+		};
+
+		//!
+		static std::unique_ptr<Client> create(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options = {});
 
 		virtual ~Client() = default;
 

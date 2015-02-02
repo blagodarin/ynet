@@ -16,7 +16,7 @@ namespace ynet
 	{
 	public:
 
-		ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, Trigger& trigger);
+		ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options, Trigger& trigger);
 		~ClientImpl() override;
 
 		std::string host() const override;
@@ -38,7 +38,7 @@ namespace ynet
 		Callbacks& _callbacks;
 		const std::string _host;
 		const uint16_t _port;
-		const int _reconnect_timeout;
+		const Options _options;
 		std::mutex _mutex;
 		ConnectionImpl* _connection;
 		bool _stopping;

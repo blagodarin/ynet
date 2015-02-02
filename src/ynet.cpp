@@ -17,10 +17,10 @@ namespace ynet
 	{
 	}
 
-	std::unique_ptr<Client> Client::create(Callbacks& callbacks, const std::string& host, uint16_t port)
+	std::unique_ptr<Client> Client::create(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options)
 	{
 		Trigger trigger;
-		return std::unique_ptr<Client>(new TcpClient(callbacks, host, port, trigger));
+		return std::unique_ptr<Client>(new TcpClient(callbacks, host, port, options, trigger));
 	}
 
 	void Server::Callbacks::on_failed_to_start(const Server&)

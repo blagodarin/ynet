@@ -1,5 +1,7 @@
 cmake_install.cmake
 CMakeCache.txt
 CMakeFiles
+libynet.a
 Makefile
-ynet
+ynet-benchmark
+ynet-test

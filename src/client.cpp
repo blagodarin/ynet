@@ -7,11 +7,16 @@
 
 namespace ynet
 {
-	ClientImpl::ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, Trigger& trigger)
+	Client::Options::Options()
+		: reconnect_timeout(1000)
+	{
+	}
+
+	ClientImpl::ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options, Trigger& trigger)
 		: _callbacks(callbacks)
 		, _host(host)
 		, _port(port)
-		, _reconnect_timeout(1000)
+		, _options(options)
 		, _connection(nullptr)
 		, _stopping(false)
 	{
@@ -99,9 +104,9 @@ namespace ynet
 				}
 			}
 			std::unique_lock<std::mutex> lock(_mutex);
-			if (_reconnect_timeout > 0)
+			if (_options.reconnect_timeout > 0)
 			{
-				if (_stop_event.wait_for(lock, std::chrono::milliseconds(_reconnect_timeout), [this]() { return _stopping; }))
+				if (_stop_event.wait_for(lock, std::chrono::milliseconds(_options.reconnect_timeout), [this]() { return _stopping; }))
 					break;
 			}
 			else if (_stopping)

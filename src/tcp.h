@@ -9,7 +9,7 @@ namespace ynet
 	{
 	public:
 
-		TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, Trigger& trigger);
+		TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options, Trigger& trigger);
 		~TcpClient() override;
 
 	protected:

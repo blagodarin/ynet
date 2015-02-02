@@ -105,20 +105,27 @@ namespace ynet
 			std::lock_guard<std::mutex> lock(_mutex);
 			if (_closed)
 				return false;
-			const auto sent_size = ::send(_socket.get(), data, size, MSG_NOSIGNAL);
-			if (sent_size == -1)
+			// A blocking socket may block, but isn't required to
+			// (when e.g. the message size exceeds the send buffer size).
+			while (size > 0)
 			{
-				switch (errno)
+				const auto sent_size = ::send(_socket.get(), data, size, MSG_NOSIGNAL);
+				if (sent_size == -1)
 				{
-				case ECONNRESET:
-					_closed = true;
-					return false;
-				default:
-					throw std::system_error(errno, std::generic_category());
+					switch (errno)
+					{
+					case ECONNRESET:
+						_closed = true;
+						return false;
+					default:
+						throw std::system_error(errno, std::generic_category());
+					}
 				}
+				else if (static_cast<size_t>(sent_size) == size)
+					break;
+				else
+					size -= sent_size; // TODO: Wait until the socket becomes sendable.
 			}
-			else if (static_cast<size_t>(sent_size) != size)
-				throw std::logic_error("size == " + std::to_string(size) + ", sent_size == " + std::to_string(sent_size));
 			return true;
 		}
 
@@ -159,8 +166,8 @@ namespace ynet
 		bool _closed;
 	};
 
-	TcpClient::TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, Trigger& trigger)
-		: ClientImpl(callbacks, host, port, trigger)
+	TcpClient::TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options, Trigger& trigger)
+		: ClientImpl(callbacks, host, port, options, trigger)
 	{
 	}
 
