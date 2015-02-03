@@ -4,11 +4,13 @@
 
 #include "benchmark.h"
 
-class SendReceiveClient: public BenchmarkClient
+class SendClient: public BenchmarkClient
 {
 public:
 
-	SendReceiveClient(const std::string& host, uint16_t port, unsigned count, size_t bytes);
+	SendClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes);
+
+	const unsigned marks() const { return _marks; }
 
 private:
 
@@ -19,25 +21,20 @@ private:
 
 private:
 
-	unsigned _counts_left;
 	std::vector<uint8_t> _buffer;
 	size_t _offset = 0;
+	unsigned _marks = 0;
 };
 
-class SendReceiveServer: public BenchmarkServer
+class SendServer: public BenchmarkServer
 {
 public:
 
-	SendReceiveServer(uint16_t port, size_t bytes);
+	SendServer(uint16_t port);
 
 private:
 
 	void on_connected(const ynet::Server&, const std::shared_ptr<ynet::Connection>&) override;
 	void on_received(const ynet::Server&, const std::shared_ptr<ynet::Connection>&, const void*, size_t) override;
 	void on_disconnected(const ynet::Server&, const std::shared_ptr<ynet::Connection>&) override;
-
-private:
-
-	std::vector<uint8_t> _buffer;
-	size_t _offset = 0;
 };

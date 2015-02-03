@@ -1,8 +1,10 @@
 #include <iomanip>
 #include <iostream>
+#include <unordered_set>
 
 #include "connect_disconnect.h"
-#include "send_receive.h"
+#include "exchange.h"
+#include "send.h"
 
 using Row = std::vector<std::string>;
 using Table = std::vector<std::vector<std::string>>;
@@ -28,55 +30,110 @@ void print_table(const Table& table)
 	std::cout << std::endl;
 }
 
-void measure_connect_disconnect_rate(Table& results, unsigned count)
+void benchmark_connect_disconnect(Table& results, unsigned seconds)
 {
-	std::cout << "Connect-disconnect rate measurement (1 thread, " << count << " ops)..." << std::endl;
+	std::cout << "Benchmarking connect-disconnect (1 thread, " << seconds << " s)..." << std::endl;
 	ConnectDisconnectServer server(5445);
-	ConnectDisconnectClient client("localhost", 5445, count);
+	ConnectDisconnectClient client("localhost", 5445, seconds);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 	{
 		results.emplace_back(Row{"FAILED"});
 		return;
 	}
-	const auto seconds = milliseconds / 1000.0;
+	const auto marks = client.marks();
+	const auto elapsed_seconds = milliseconds / 1000.0;
 	results.emplace_back(Row{
-		std::to_string(count) + " ops",
-		std::to_string(seconds) + " s",
-		std::to_string(count / seconds) + " ops/s"});
+		std::to_string(marks) + " ops",
+		std::to_string(elapsed_seconds) + " s",
+		std::to_string(marks / elapsed_seconds) + " ops/s"});
 }
 
-void measure_send_receive_rate(Table& results, unsigned count, size_t bytes)
+void benchmark_exchange(Table& results, unsigned seconds, size_t bytes)
 {
-	std::cout << "Local throughput measurement (" << count << "ops, " << bytes << " B)..." << std::endl;
-	SendReceiveServer server(5445, bytes);
-	SendReceiveClient client("localhost", 5445, count, bytes);
-	const auto milliseconds = client.run();
-	if (milliseconds < 0)
+	const auto& human_readable_bytes = [](size_t bytes)
+	{
+		if (bytes < 1024)
+			return std::to_string(bytes) + " B";
+		bytes /= 1024;
+		if (bytes < 1024)
+			return std::to_string(bytes) + " K";
+		bytes /= 1024;
+		return std::to_string(bytes) + " M";
+	}(bytes);
+	std::cout << "Benchmarking exchange (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
+	ExchangeServer server(5445, bytes);
+	ExchangeClient client("localhost", 5445, seconds, bytes);
+	const auto elapsed_milliseconds = client.run();
+	if (elapsed_milliseconds < 0)
 	{
 		results.emplace_back(Row{"FAILED"});
 		return;
 	}
-	const auto seconds = milliseconds / 1000.0;
+	const auto marks = client.marks();
+	const auto elapsed_seconds = elapsed_milliseconds / 1000.0;
 	results.emplace_back(Row{
-		std::to_string(bytes) + " B",
-		std::to_string(count) + " ops",
-		std::to_string(seconds) + " s",
-		std::to_string(count / seconds) + " ops/s",
-		std::to_string((2 * static_cast<uint64_t>(count) * bytes) / (seconds * 1024 * 1024)) + " MiB/s"});
+		human_readable_bytes,
+		std::to_string(marks) + " ops",
+		std::to_string(elapsed_seconds) + " s",
+		std::to_string(marks / elapsed_seconds) + " ops/s",
+		std::to_string((2 * static_cast<uint64_t>(marks) * bytes) / (elapsed_seconds * 1024 * 1024)) + " MiB/s"});
 }
 
-int main()
+void benchmark_send(Table& results, unsigned seconds, size_t bytes)
 {
+	const auto& human_readable_bytes = [](size_t bytes)
+	{
+		if (bytes < 1024)
+			return std::to_string(bytes) + " B";
+		bytes /= 1024;
+		if (bytes < 1024)
+			return std::to_string(bytes) + " K";
+		bytes /= 1024;
+		return std::to_string(bytes) + " M";
+	}(bytes);
+	std::cout << "Benchmarking send (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
+	SendServer server(5445);
+	SendClient client("localhost", 5445, seconds, bytes);
+	const auto elapsed_milliseconds = client.run();
+	if (elapsed_milliseconds < 0)
+	{
+		results.emplace_back(Row{"FAILED"});
+		return;
+	}
+	const auto marks = client.marks();
+	const auto elapsed_seconds = elapsed_milliseconds / 1000.0;
+	results.emplace_back(Row{
+		human_readable_bytes,
+		std::to_string(marks) + " ops",
+		std::to_string(elapsed_seconds) + " s",
+		std::to_string(marks / elapsed_seconds) + " ops/s",
+		std::to_string((static_cast<uint64_t>(marks) * bytes) / (elapsed_seconds * 1024 * 1024)) + " MiB/s"});
+}
+
+int main(int argc, char** argv)
+{
+	std::unordered_set<std::string> options;
+	for (int i = 1; i < argc; ++i)
+		options.emplace(argv[i]);
+	if (options.count("connect"))
 	{
 		Table results;
-		measure_connect_disconnect_rate(results, 10000);
+		benchmark_connect_disconnect(results, 1);
 		print_table(results);
 	}
+	if (options.count("exchange"))
 	{
 		Table results;
-		for (int i = 0; i <= 22; ++i)
-			measure_send_receive_rate(results, 100000, 1 << i);
+		for (int i = 0; i <= 24; ++i)
+			benchmark_exchange(results, 10, 1 << i);
+		print_table(results);
+	}
+	if (options.count("send"))
+	{
+		Table results;
+		for (int i = 0; i <= 24; ++i)
+			benchmark_send(results, 10, 1 << i);
 		print_table(results);
 	}
 	return 0;

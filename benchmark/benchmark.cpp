@@ -12,8 +12,9 @@ namespace
 	}
 }
 
-BenchmarkClient::BenchmarkClient(const std::string& host, uint16_t port, const ynet::Client::Options& options)
-	: _client(ynet::Client::create(*this, host, port, options))
+BenchmarkClient::BenchmarkClient(const std::string& host, uint16_t port, int64_t seconds, const ynet::Client::Options& options)
+	: _benchmark_time(seconds * 1000)
+	, _client(ynet::Client::create(*this, host, port, options))
 {
 }
 
@@ -29,7 +30,7 @@ int64_t BenchmarkClient::run()
 		_stop_condition.wait(lock, [this]() { return _stop_flag; });
 	}
 	_client.reset();
-	return _discarded ? -1 : _total_ticks;
+	return _discarded ? -1 : _elapsed_time;
 }
 
 void BenchmarkClient::discard_benchmark()
@@ -44,17 +45,20 @@ void BenchmarkClient::discard_benchmark()
 
 void BenchmarkClient::start_benchmark()
 {
-	_start_tick = ::current_tick();
+	_start_time = ::current_tick();
 }
 
-void BenchmarkClient::stop_benchmark()
+bool BenchmarkClient::stop_benchmark()
 {
-	_total_ticks = ::current_tick() - _start_tick;
+	_elapsed_time = ::current_tick() - _start_time;
+	if (_elapsed_time < _benchmark_time)
+		return false;
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
 		_stop_flag = true;
 	}
 	_stop_condition.notify_one();
+	return true;
 }
 
 void BenchmarkClient::on_started(const ynet::Client&)

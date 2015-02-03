@@ -1,12 +1,14 @@
 #pragma once
 
+#include <vector>
+
 #include "benchmark.h"
 
-class ConnectDisconnectClient: public BenchmarkClient
+class ExchangeClient: public BenchmarkClient
 {
 public:
 
-	ConnectDisconnectClient(const std::string& host, uint16_t port, int64_t seconds);
+	ExchangeClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes);
 
 	const unsigned marks() const { return _marks; }
 
@@ -19,18 +21,25 @@ private:
 
 private:
 
+	std::vector<uint8_t> _buffer;
+	size_t _offset = 0;
 	unsigned _marks = 0;
 };
 
-class ConnectDisconnectServer: public BenchmarkServer
+class ExchangeServer: public BenchmarkServer
 {
 public:
 
-	ConnectDisconnectServer(uint16_t port);
+	ExchangeServer(uint16_t port, size_t bytes);
 
 private:
 
 	void on_connected(const ynet::Server&, const std::shared_ptr<ynet::Connection>&) override;
 	void on_received(const ynet::Server&, const std::shared_ptr<ynet::Connection>&, const void*, size_t) override;
 	void on_disconnected(const ynet::Server&, const std::shared_ptr<ynet::Connection>&) override;
+
+private:
+
+	std::vector<uint8_t> _buffer;
+	size_t _offset = 0;
 };

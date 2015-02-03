@@ -9,7 +9,7 @@ class BenchmarkClient: public ynet::Client::Callbacks
 {
 public:
 
-	BenchmarkClient(const std::string& host, uint16_t port, const ynet::Client::Options& options = {});
+	BenchmarkClient(const std::string& host, uint16_t port, int64_t seconds, const ynet::Client::Options& options = {});
 
 	int64_t run();
 
@@ -17,7 +17,7 @@ protected:
 
 	void discard_benchmark();
 	void start_benchmark();
-	void stop_benchmark();
+	bool stop_benchmark();
 
 private:
 
@@ -30,8 +30,9 @@ private:
 	std::condition_variable _start_condition;
 	bool _stop_flag = false;
 	std::condition_variable _stop_condition;
-	int64_t _start_tick = 0;
-	int64_t _total_ticks = 0;
+	int64_t _benchmark_time;
+	int64_t _start_time = 0;
+	int64_t _elapsed_time = 0;
 	bool _discarded = false;
 	std::unique_ptr<ynet::Client> _client;
 };

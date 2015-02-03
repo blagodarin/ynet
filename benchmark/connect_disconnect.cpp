@@ -10,9 +10,8 @@ namespace
 	}
 }
 
-ConnectDisconnectClient::ConnectDisconnectClient(const std::string& host, uint16_t port, unsigned count)
-	: BenchmarkClient(host, port, client_options())
-	, _counts_left(count)
+ConnectDisconnectClient::ConnectDisconnectClient(const std::string& host, uint16_t port, int64_t seconds)
+	: BenchmarkClient(host, port, seconds, client_options())
 {
 }
 
@@ -27,9 +26,8 @@ void ConnectDisconnectClient::on_received(const ynet::Client&, const std::shared
 
 void ConnectDisconnectClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&)
 {
-	--_counts_left;
-	if (_counts_left == 0)
-		stop_benchmark();
+	++_marks;
+	stop_benchmark();
 }
 
 void ConnectDisconnectClient::on_failed_to_connect(const ynet::Client&)
