@@ -2,10 +2,10 @@
 
 #include <cstring>
 
-SendReceiveClient::SendReceiveClient(const std::string& host, uint16_t port, unsigned cycles, size_t bytes_per_cycle)
+SendReceiveClient::SendReceiveClient(const std::string& host, uint16_t port, unsigned count, size_t bytes)
 	: BenchmarkClient(host, port)
-	, _cycles_left(cycles)
-	, _buffer(bytes_per_cycle)
+	, _counts_left(count)
+	, _buffer(bytes)
 {
 }
 
@@ -23,15 +23,15 @@ void SendReceiveClient::on_received(const ynet::Client&, const std::shared_ptr<y
 	_offset += size;
 	if (_offset == _buffer.size())
 	{
-		if (_cycles_left > 1)
+		if (_counts_left > 1)
 		{
-			--_cycles_left;
+			--_counts_left;
 			_offset = 0;
 			connection->send(_buffer.data(), _buffer.size());
 		}
 		else
 		{
-			_cycles_left = 0;
+			_counts_left = 0;
 			stop_benchmark();
 		}
 	}
@@ -39,7 +39,7 @@ void SendReceiveClient::on_received(const ynet::Client&, const std::shared_ptr<y
 
 void SendReceiveClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&)
 {
-	if (_cycles_left > 0)
+	if (_counts_left > 0)
 		discard_benchmark();
 }
 
@@ -48,9 +48,9 @@ void SendReceiveClient::on_failed_to_connect(const ynet::Client&)
 	discard_benchmark();
 }
 
-SendReceiveServer::SendReceiveServer(uint16_t port, size_t bytes_per_cycle)
+SendReceiveServer::SendReceiveServer(uint16_t port, size_t bytes)
 	: BenchmarkServer(port)
-	, _buffer(bytes_per_cycle)
+	, _buffer(bytes)
 {
 }
 

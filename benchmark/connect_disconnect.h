@@ -6,7 +6,7 @@ class ConnectDisconnectClient: public BenchmarkClient
 {
 public:
 
-	ConnectDisconnectClient(const std::string& host, uint16_t port, unsigned attempts);
+	ConnectDisconnectClient(const std::string& host, uint16_t port, unsigned count);
 
 private:
 
@@ -17,7 +17,7 @@ private:
 
 private:
 
-	unsigned _attempts_left;
+	unsigned _counts_left;
 };
 
 class ConnectDisconnectServer: public BenchmarkServer

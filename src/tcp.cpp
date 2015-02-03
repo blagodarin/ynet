@@ -78,9 +78,15 @@ namespace ynet
 	{
 	public:
 
-		TcpConnection(const ::sockaddr_storage& sockaddr, TcpSocket&& socket)
+		enum
+		{
+			NonblockingRecv = 1 << 0,
+		};
+
+		TcpConnection(const ::sockaddr_storage& sockaddr, TcpSocket&& socket, unsigned flags)
 			: ConnectionImpl(sockaddr)
 			, _socket(std::move(socket))
+			, _flags(flags)
 			, _closed(false)
 		{
 		}
@@ -105,33 +111,29 @@ namespace ynet
 			std::lock_guard<std::mutex> lock(_mutex);
 			if (_closed)
 				return false;
-			// A blocking socket may block, but isn't required to
-			// (when e.g. the message size exceeds the send buffer size).
-			while (size > 0)
+			const auto sent_size = ::send(_socket.get(), data, size, MSG_NOSIGNAL);
+			if (sent_size == -1)
 			{
-				const auto sent_size = ::send(_socket.get(), data, size, MSG_NOSIGNAL);
-				if (sent_size == -1)
+				switch (errno)
 				{
-					switch (errno)
-					{
-					case ECONNRESET:
-						_closed = true;
-						return false;
-					default:
-						throw std::system_error(errno, std::generic_category());
-					}
+				case ECONNRESET:
+					_closed = true;
+					return false;
+				default:
+					throw std::system_error(errno, std::generic_category());
 				}
-				else if (static_cast<size_t>(sent_size) == size)
-					break;
-				else
-					size -= sent_size; // TODO: Wait until the socket becomes sendable.
+			}
+			else if (static_cast<size_t>(sent_size) != size)
+			{
+				// Neither POSIX nor 'man send' explicitly state this can't happen.
+				throw std::logic_error("Blocking 'send' sent " + std::to_string(sent_size) + " bytes of " + std::to_string(size) + " requested");
 			}
 			return true;
 		}
 
 		size_t receive(void* data, size_t size, bool* disconnected) override
 		{
-			const auto received_size = ::recv(_socket.get(), data, size, 0);
+			const auto received_size = ::recv(_socket.get(), data, size, _flags & NonblockingRecv ? MSG_DONTWAIT : 0);
 			if (received_size == -1)
 			{
 				switch (errno)
@@ -140,6 +142,11 @@ namespace ynet
 			#if EWOULDBLOCK != EAGAIN
 				case EWOULDBLOCK:
 			#endif
+					if (!(_flags & NonblockingRecv))
+					{
+						// "...a receive timeout had been set and the timeout expired before data was received." (c) 'man recv'
+						throw std::logic_error("Blocking 'recv' failed with EAGAIN/EWOULDBLOCK");
+					}
 					return 0;
 				case ECONNRESET:
 					if (disconnected)
@@ -163,6 +170,7 @@ namespace ynet
 
 		std::mutex _mutex;
 		TcpSocket _socket;
+		const unsigned _flags;
 		bool _closed;
 	};
 
@@ -183,7 +191,7 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		return std::unique_ptr<ConnectionImpl>(new TcpConnection(sockaddr, std::move(socket)));
+		return std::unique_ptr<ConnectionImpl>(new TcpConnection(sockaddr, std::move(socket), 0));
 	}
 
 	size_t TcpClient::receive_buffer_size() const
@@ -247,7 +255,7 @@ namespace ynet
 		{
 			::sockaddr_storage sockaddr;
 			auto sockaddr_size = sizeof sockaddr;
-			TcpSocket peer = ::accept4(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size, SOCK_NONBLOCK);
+			TcpSocket peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
 			if (!peer)
 			{
 				if (errno == ECONNABORTED)
@@ -255,7 +263,7 @@ namespace ynet
 				throw std::system_error(errno, std::generic_category());
 			}
 			const auto peer_socket = peer.get();
-			const std::shared_ptr<ConnectionImpl> connection(new TcpConnection(sockaddr, std::move(peer)));
+			const std::shared_ptr<ConnectionImpl> connection(new TcpConnection(sockaddr, std::move(peer), TcpConnection::NonblockingRecv));
 			on_connected(connection);
 			connections.emplace(peer_socket, connection);
 		};

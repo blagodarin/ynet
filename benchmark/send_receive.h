@@ -8,7 +8,7 @@ class SendReceiveClient: public BenchmarkClient
 {
 public:
 
-	SendReceiveClient(const std::string& host, uint16_t port, unsigned cycles, size_t bytes_per_cycle);
+	SendReceiveClient(const std::string& host, uint16_t port, unsigned count, size_t bytes);
 
 private:
 
@@ -19,7 +19,7 @@ private:
 
 private:
 
-	unsigned _cycles_left;
+	unsigned _counts_left;
 	std::vector<uint8_t> _buffer;
 	size_t _offset = 0;
 };
@@ -28,7 +28,7 @@ class SendReceiveServer: public BenchmarkServer
 {
 public:
 
-	SendReceiveServer(uint16_t port, size_t bytes_per_cycle);
+	SendReceiveServer(uint16_t port, size_t bytes);
 
 private:
 
