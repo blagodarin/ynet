@@ -19,6 +19,7 @@ add_executable(ynet-benchmark
 	benchmark/benchmark.cpp
 	benchmark/connect_disconnect.cpp
 	benchmark/exchange.cpp
+	benchmark/receive.cpp
 	benchmark/send.cpp
 	benchmark/main.cpp)
 target_link_libraries(ynet-benchmark ynet)

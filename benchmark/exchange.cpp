@@ -18,7 +18,6 @@ void ExchangeClient::on_received(const ynet::Client&, const std::shared_ptr<ynet
 {
 	if (size > _buffer.size() - _offset)
 		throw std::logic_error("Unexpected received data size");
-	::memcpy(&_buffer[_offset], data, size);
 	_offset += size;
 	if (_offset < _buffer.size())
 		return;
@@ -52,13 +51,11 @@ void ExchangeServer::on_received(const ynet::Server&, const std::shared_ptr<ynet
 {
 	if (size > _buffer.size() - _offset)
 		throw std::logic_error("Unexpected received data size");
-	::memcpy(&_buffer[_offset], data, size);
 	_offset += size;
-	if (_offset == _buffer.size())
-	{
-		_offset = 0;
-		connection->send(_buffer.data(), _buffer.size());
-	}
+	if (_offset < _buffer.size())
+		return;
+	_offset = 0;
+	connection->send(_buffer.data(), _buffer.size());
 }
 
 void ExchangeServer::on_disconnected(const ynet::Server&, const std::shared_ptr<ynet::Connection>&)

@@ -10,7 +10,8 @@ public:
 
 	ExchangeClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes);
 
-	const unsigned marks() const { return _marks; }
+	uint64_t bytes() const { return _marks * _buffer.size() * 2; }
+	uint64_t marks() const { return _marks; }
 
 private:
 
@@ -23,7 +24,7 @@ private:
 
 	std::vector<uint8_t> _buffer;
 	size_t _offset = 0;
-	unsigned _marks = 0;
+	uint64_t _marks = 0;
 };
 
 class ExchangeServer: public BenchmarkServer

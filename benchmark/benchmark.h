@@ -33,6 +33,7 @@ private:
 	int64_t _benchmark_time;
 	int64_t _start_time = 0;
 	int64_t _elapsed_time = 0;
+	bool _stopped = false;
 	bool _discarded = false;
 	std::unique_ptr<ynet::Client> _client;
 };

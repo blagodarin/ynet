@@ -47,6 +47,9 @@ namespace ynet
 			_stopping = true;
 			if (_connection)
 				_connection->close();
+			// TODO: Consider aborting the connection here instead of gracefully closing it.
+			// The current implementation hangs if the server is constantly sending us data
+			// and doesn't check for the client to become exhausted.
 		}
 		_stop_event.notify_one();
 		_thread.join();

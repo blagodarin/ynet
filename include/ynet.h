@@ -25,6 +25,10 @@ namespace ynet
 		virtual void close() = 0;
 
 		//!
+		//! \return \c true if the remote party finished sending data.
+		virtual bool exhausted() const = 0;
+
+		//!
 		virtual std::string name() const = 0;
 
 		//! Get the remote port.

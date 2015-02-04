@@ -106,6 +106,17 @@ namespace ynet
 			}
 		}
 
+		bool exhausted() const override
+		{
+			::pollfd pollfd;
+			::memset(&pollfd, 0, sizeof pollfd);
+			pollfd.fd = _socket.get();
+			pollfd.events = POLLRDHUP;
+			if (::poll(&pollfd, 1, 0) < 0)
+				throw std::system_error(errno, std::generic_category());
+			return pollfd.revents;
+		}
+
 		bool send(const void* data, size_t size) override
 		{
 			std::lock_guard<std::mutex> lock(_mutex);

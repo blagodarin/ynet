@@ -50,14 +50,18 @@ void BenchmarkClient::start_benchmark()
 
 bool BenchmarkClient::stop_benchmark()
 {
-	_elapsed_time = ::current_tick() - _start_time;
-	if (_elapsed_time < _benchmark_time)
-		return false;
+	if (!_stopped)
 	{
-		std::lock_guard<std::mutex> lock(_mutex);
-		_stop_flag = true;
+		_elapsed_time = ::current_tick() - _start_time;
+		if (_elapsed_time < _benchmark_time)
+			return false;
+		_stopped = true;
+		{
+			std::lock_guard<std::mutex> lock(_mutex);
+			_stop_flag = true;
+		}
+		_stop_condition.notify_one();
 	}
-	_stop_condition.notify_one();
 	return true;
 }
 
