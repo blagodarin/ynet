@@ -17,6 +17,7 @@ namespace ynet
 		uint16_t port() const override;
 
 		virtual size_t receive(void* data, size_t size, bool* disconnected) = 0;
+		virtual size_t receive_buffer_size() const = 0;
 
 	private:
 

@@ -3,7 +3,6 @@
 #include <cassert>
 
 #include "connection.h"
-#include "trigger.h"
 
 namespace ynet
 {
@@ -12,7 +11,7 @@ namespace ynet
 	{
 	}
 
-	ClientImpl::ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options, Trigger& trigger)
+	ClientImpl::ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options)
 		: _callbacks(callbacks)
 		, _host(host)
 		, _port(port)
@@ -20,12 +19,12 @@ namespace ynet
 		, _connection(nullptr)
 		, _stopping(false)
 	{
-		trigger = [this]() { _thread = std::thread(std::bind(&ClientImpl::run, this)); };
 	}
 
 	ClientImpl::~ClientImpl()
 	{
-		assert(!_thread.joinable());
+		if (_thread.joinable())
+			throw std::logic_error("A client must be explicitly stopped");
 	}
 
 	std::string ClientImpl::host() const
@@ -38,10 +37,17 @@ namespace ynet
 		return _port;
 	}
 
+	void ClientImpl::start()
+	{
+		_thread = std::thread(std::bind(&ClientImpl::run, this));
+	}
+
 	void ClientImpl::stop()
 	{
-		assert(_thread.joinable());
-		assert(_thread.get_id() != std::this_thread::get_id());
+		if (!_thread.joinable())
+			return; // It is a sequential stop call during a hierarchical destruction.
+		if (_thread.get_id() == std::this_thread::get_id())
+			throw std::logic_error("A client must not be stopped from its thread");
 		{
 			std::lock_guard<std::mutex> lock(_mutex);
 			_stopping = true;
@@ -63,7 +69,7 @@ namespace ynet
 			const auto& resolved = resolve(_host, _port);
 			if (resolved.local)
 			{
-				auto connection = connect_local();
+				auto connection = connect_local(_port);
 				if (connection)
 					return connection;
 			}
@@ -77,7 +83,7 @@ namespace ynet
 		};
 
 		_callbacks.on_started(*this);
-		std::vector<uint8_t> buffer(receive_buffer_size());
+		std::vector<uint8_t> receive_buffer;
 		for (bool initial = true; ; )
 		{
 			{
@@ -91,14 +97,15 @@ namespace ynet
 							break;
 						_connection = connection.get();
 					}
+					receive_buffer.resize(connection->receive_buffer_size());
 					const std::shared_ptr<Connection> connection_ptr = std::move(connection);
 					_callbacks.on_connected(*this, connection_ptr);
 					for (;;)
 					{
-						const size_t size = _connection->receive(buffer.data(), buffer.size(), nullptr);
+						const size_t size = _connection->receive(receive_buffer.data(), receive_buffer.size(), nullptr);
 						if (size == 0)
 							break;
-						_callbacks.on_received(*this, connection_ptr, buffer.data(), size);
+						_callbacks.on_received(*this, connection_ptr, receive_buffer.data(), size);
 					}
 					connection_ptr->close();
 					{

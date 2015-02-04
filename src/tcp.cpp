@@ -177,6 +177,11 @@ namespace ynet
 				return received_size;
 		}
 
+		size_t receive_buffer_size() const override
+		{
+			return TcpBufferSize;
+		}
+
 	private:
 
 		std::mutex _mutex;
@@ -185,8 +190,8 @@ namespace ynet
 		bool _closed;
 	};
 
-	TcpClient::TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options, Trigger& trigger)
-		: ClientImpl(callbacks, host, port, options, trigger)
+	TcpClient::TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options)
+		: ClientImpl(callbacks, host, port, options)
 	{
 	}
 
@@ -205,14 +210,9 @@ namespace ynet
 		return std::unique_ptr<ConnectionImpl>(new TcpConnection(sockaddr, std::move(socket), 0));
 	}
 
-	std::unique_ptr<ConnectionImpl> TcpClient::connect_local()
+	std::unique_ptr<ConnectionImpl> TcpClient::connect_local(uint16_t)
 	{
 		return {};
-	}
-
-	size_t TcpClient::receive_buffer_size() const
-	{
-		return TcpBufferSize;
 	}
 
 	struct TcpServer::Private
@@ -222,8 +222,8 @@ namespace ynet
 		bool _shutting_down = false;
 	};
 
-	TcpServer::TcpServer(Callbacks& callbacks, uint16_t port, Trigger& trigger)
-		: ServerImpl(callbacks, port, trigger)
+	TcpServer::TcpServer(Callbacks& callbacks, uint16_t port)
+		: ServerImpl(callbacks, port)
 		, _private(new Private())
 	{
 	}

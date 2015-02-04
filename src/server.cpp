@@ -3,23 +3,22 @@
 #include <cassert>
 
 #include "connection.h"
-#include "trigger.h"
 
 namespace ynet
 {
-	ServerImpl::ServerImpl(Server::Callbacks& callbacks, uint16_t port, Trigger& trigger)
+	ServerImpl::ServerImpl(Server::Callbacks& callbacks, uint16_t port)
 		: _callbacks(callbacks)
 		, _sockaddr(make_sockaddr("0.0.0.0", port)) // TODO: Change to :: for an IPv6 server.
 		, _address(_sockaddr)
 		, _relisten_timeout(1000)
 		, _stopping(false)
 	{
-		trigger = [this]() { _thread = std::thread(std::bind(&ServerImpl::run, this)); };
 	}
 
 	ServerImpl::~ServerImpl()
 	{
-		assert(!_thread.joinable());
+		if (_thread.joinable())
+			throw std::logic_error("A server must be explicitly stopped");
 	}
 
 	std::string ServerImpl::address() const
@@ -37,10 +36,17 @@ namespace ynet
 		return _address._port;
 	}
 
+	void ServerImpl::start()
+	{
+		_thread = std::thread(std::bind(&ServerImpl::run, this));
+	}
+
 	void ServerImpl::stop()
 	{
-		assert(_thread.joinable());
-		assert(_thread.get_id() != std::this_thread::get_id());
+		if (!_thread.joinable())
+			return; // It is a sequential stop call during a hierarchical destruction.
+		if (_thread.get_id() == std::this_thread::get_id())
+			throw std::logic_error("A server must not be stopped from its thread");
 		{
 			std::lock_guard<std::mutex> lock(_mutex);
 			_stopping = true;

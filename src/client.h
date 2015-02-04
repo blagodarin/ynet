@@ -10,25 +10,24 @@ struct sockaddr_storage;
 namespace ynet
 {
 	class ConnectionImpl;
-	class Trigger;
 
 	class ClientImpl: public Client
 	{
 	public:
 
-		ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options, Trigger& trigger);
+		ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options);
 		~ClientImpl() override;
 
 		std::string host() const override;
 		uint16_t port() const override;
 
+		virtual void start();
 		void stop();
 
 	protected:
 
 		virtual std::unique_ptr<ConnectionImpl> connect(const ::sockaddr_storage& sockaddr) = 0;
-		virtual std::unique_ptr<ConnectionImpl> connect_local() = 0;
-		virtual size_t receive_buffer_size() const = 0;
+		virtual std::unique_ptr<ConnectionImpl> connect_local(uint16_t port) = 0;
 
 	private:
 

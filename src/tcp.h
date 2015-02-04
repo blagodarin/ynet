@@ -9,21 +9,20 @@ namespace ynet
 	{
 	public:
 
-		TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options, Trigger& trigger);
+		TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options);
 		~TcpClient() override;
 
 	protected:
 
 		std::unique_ptr<ConnectionImpl> connect(const ::sockaddr_storage& sockaddr) override;
-		std::unique_ptr<ConnectionImpl> connect_local() override;
-		size_t receive_buffer_size() const override;
+		std::unique_ptr<ConnectionImpl> connect_local(uint16_t) override;
 	};
 
 	class TcpServer: public ServerImpl
 	{
 	public:
 
-		TcpServer(Callbacks& callbacks, uint16_t port, Trigger& trigger);
+		TcpServer(Callbacks& callbacks, uint16_t port);
 		~TcpServer() override;
 
 	protected:

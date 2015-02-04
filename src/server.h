@@ -9,19 +9,19 @@
 namespace ynet
 {
 	class ConnectionImpl;
-	class Trigger;
 
 	class ServerImpl: public Server
 	{
 	public:
 
-		ServerImpl(Callbacks& callbacks, uint16_t port, Trigger& trigger);
+		ServerImpl(Callbacks& callbacks, uint16_t port);
 		~ServerImpl() override;
 
 		std::string address() const override;
 		std::string name() const override;
 		uint16_t port() const override;
 
+		virtual void start();
 		void stop();
 
 		void on_connected(const std::shared_ptr<Connection>& connection);

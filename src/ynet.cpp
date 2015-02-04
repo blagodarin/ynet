@@ -1,7 +1,6 @@
 #include <ynet.h>
 
 #include "tcp.h"
-#include "trigger.h"
 
 namespace ynet
 {
@@ -19,8 +18,9 @@ namespace ynet
 
 	std::unique_ptr<Client> Client::create(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options)
 	{
-		Trigger trigger;
-		return std::unique_ptr<Client>(new TcpClient(callbacks, host, port, options, trigger));
+		std::unique_ptr<ClientImpl> client(new TcpClient(callbacks, host, port, options));
+		client->start();
+		return std::move(client);
 	}
 
 	void Server::Callbacks::on_failed_to_start(const Server&)
@@ -37,7 +37,8 @@ namespace ynet
 
 	std::unique_ptr<Server> Server::create(Callbacks& callbacks, uint16_t port)
 	{
-		Trigger trigger;
-		return std::unique_ptr<Server>(new TcpServer(callbacks, port, trigger));
+		std::unique_ptr<ServerImpl> server(new TcpServer(callbacks, port));
+		server->start();
+		return std::move(server);
 	}
 }
