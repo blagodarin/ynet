@@ -26,5 +26,11 @@ namespace ynet
 		Address& operator=(Address&&) = default;
 	};
 
-	std::vector<::sockaddr_storage> resolve(const std::string& host, uint16_t port);
+	struct Resolved
+	{
+		std::vector<::sockaddr_storage> addresses;
+		bool local = false;
+	};
+
+	Resolved resolve(const std::string& host, uint16_t port);
 }

@@ -27,6 +27,7 @@ namespace ynet
 	protected:
 
 		virtual std::unique_ptr<ConnectionImpl> connect(const ::sockaddr_storage& sockaddr) = 0;
+		virtual std::unique_ptr<ConnectionImpl> connect_local() = 0;
 		virtual size_t receive_buffer_size() const = 0;
 
 	private:

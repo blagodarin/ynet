@@ -8,6 +8,45 @@
 
 namespace ynet
 {
+	namespace
+	{
+		bool is_local(const ::sockaddr_in& sockaddr)
+		{
+			union
+			{
+				uint8_t u8[4];
+			} ip;
+			static_assert(sizeof ip == sizeof sockaddr.sin_addr, "");
+			::memcpy(&ip, &sockaddr.sin_addr, sizeof sockaddr.sin_addr);
+			if (ip.u8[0] == 127)
+				return true; // 127.0.0.0/8
+			// TODO: Check other addresses of the local machine.
+			return false;
+		}
+
+		bool is_local(const ::sockaddr_in6& sockaddr)
+		{
+			union
+			{
+				uint8_t u8[16];
+				uint16_t u16[8];
+				uint32_t u32[4];
+				uint64_t u64[2];
+			} ip;
+			static_assert(sizeof ip == sizeof sockaddr.sin6_addr, "");
+			::memcpy(&ip, &sockaddr.sin6_addr, sizeof sockaddr.sin6_addr);
+			if (ip.u64[0] == 0 && ip.u16[4] == 0)
+			{
+				if (ip.u16[5] == 0 && ip.u16[6] == 0 && ip.u8[14] == 0 && ip.u8[15] == 1)
+					return true; // ::1
+				if (ip.u16[5] == 0xFFFF && ip.u8[12] == 127)
+					return true; // ::ffff::127.0.0.0/104
+			}
+			// TODO: Check other addresses of the local machine.
+			return false;
+		}
+	}
+
 	::sockaddr_storage make_sockaddr(const std::string& address, uint16_t port)
 	{
 		::sockaddr_storage sockaddr_storage;
@@ -70,7 +109,7 @@ namespace ynet
 			throw std::logic_error("Only IPv4/IPv6 addresses are supported");
 	}
 
-	std::vector<::sockaddr_storage> resolve(const std::string& host, uint16_t port)
+	Resolved resolve(const std::string& host, uint16_t port)
 	{
 		struct Resolver
 		{
@@ -95,7 +134,7 @@ namespace ynet
 		};
 
 		const Resolver resolver(host);
-		std::vector<::sockaddr_storage> addresses;
+		Resolved resolved;
 		for (const auto* addrinfo = resolver.addrinfos; addrinfo; addrinfo = addrinfo->ai_next)
 		{
 			::sockaddr_storage sockaddr;
@@ -104,17 +143,19 @@ namespace ynet
 				::sockaddr_in& sockaddr_in = *reinterpret_cast<::sockaddr_in*>(&sockaddr);
 				::memcpy(&sockaddr_in, addrinfo->ai_addr, sizeof sockaddr_in);
 				sockaddr_in.sin_port = ::htons(port);
+				resolved.local = is_local(sockaddr_in);
 			}
 			else if (addrinfo->ai_family != AF_INET6)
 			{
 				::sockaddr_in6& sockaddr_in6 = *reinterpret_cast<::sockaddr_in6*>(&sockaddr);
 				::memcpy(&sockaddr_in6, addrinfo->ai_addr, sizeof sockaddr_in6);
 				sockaddr_in6.sin6_port = ::htons(port);
+				resolved.local = is_local(sockaddr_in6);
 			}
 			else
 				continue;
-			addresses.emplace_back(sockaddr);
+			resolved.addresses.emplace_back(sockaddr);
 		}
-		return addresses;
+		return resolved;
 	}
 }

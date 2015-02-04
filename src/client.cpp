@@ -57,7 +57,14 @@ namespace ynet
 	{
 		const auto resolve_and_connect = [this]() -> std::unique_ptr<ConnectionImpl>
 		{
-			for (const auto& address : resolve(_host, _port))
+			const auto& resolved = resolve(_host, _port);
+			if (resolved.local)
+			{
+				auto connection = connect_local();
+				if (connection)
+					return connection;
+			}
+			for (const auto& address : resolved.addresses)
 			{
 				auto connection = connect(address);
 				if (connection)

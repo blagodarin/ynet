@@ -145,7 +145,7 @@ namespace ynet
 					if (!(_flags & NonblockingRecv))
 					{
 						// "...a receive timeout had been set and the timeout expired before data was received." (c) 'man recv'
-						throw std::logic_error("Blocking 'recv' failed with EAGAIN/EWOULDBLOCK");
+						throw std::logic_error("Blocking 'recv' timed out");
 					}
 					return 0;
 				case ECONNRESET:
@@ -192,6 +192,11 @@ namespace ynet
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
 		return std::unique_ptr<ConnectionImpl>(new TcpConnection(sockaddr, std::move(socket), 0));
+	}
+
+	std::unique_ptr<ConnectionImpl> TcpClient::connect_local()
+	{
+		return {};
 	}
 
 	size_t TcpClient::receive_buffer_size() const
