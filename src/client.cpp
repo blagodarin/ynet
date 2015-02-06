@@ -2,12 +2,14 @@
 
 #include <cassert>
 
-#include "connection.h"
+#include "local.h"
+#include "tcp.h"
 
 namespace ynet
 {
 	Client::Options::Options()
 		: reconnect_timeout(1000)
+		, optimized_loopback(true)
 	{
 	}
 
@@ -18,36 +20,14 @@ namespace ynet
 		, _options(options)
 		, _connection(nullptr)
 		, _stopping(false)
+		, _thread(std::bind(&ClientImpl::run, this))
 	{
 	}
 
 	ClientImpl::~ClientImpl()
 	{
-		if (_thread.joinable())
-			throw std::logic_error("A client must be explicitly stopped");
-	}
-
-	std::string ClientImpl::host() const
-	{
-		return _host;
-	}
-
-	uint16_t ClientImpl::port() const
-	{
-		return _port;
-	}
-
-	void ClientImpl::start()
-	{
-		_thread = std::thread(std::bind(&ClientImpl::run, this));
-	}
-
-	void ClientImpl::stop()
-	{
-		if (!_thread.joinable())
-			return; // It is a sequential stop call during a hierarchical destruction.
-		if (_thread.get_id() == std::this_thread::get_id())
-			throw std::logic_error("A client must not be stopped from its thread");
+		assert(_thread.joinable());
+		assert(_thread.get_id() != std::this_thread::get_id());
 		{
 			std::lock_guard<std::mutex> lock(_mutex);
 			_stopping = true;
@@ -62,6 +42,16 @@ namespace ynet
 		assert(!_connection);
 	}
 
+	std::string ClientImpl::host() const
+	{
+		return _host;
+	}
+
+	uint16_t ClientImpl::port() const
+	{
+		return _port;
+	}
+
 	void ClientImpl::run()
 	{
 		const auto resolve_and_connect = [this]() -> std::unique_ptr<ConnectionImpl>
@@ -69,13 +59,13 @@ namespace ynet
 			const auto& resolved = resolve(_host, _port);
 			if (resolved.local)
 			{
-				auto connection = connect_local(_port);
+				auto connection = create_local_connection(_port);
 				if (connection)
 					return connection;
 			}
 			for (const auto& address : resolved.addresses)
 			{
-				auto connection = connect(address);
+				auto connection = create_tcp_connection(address);
 				if (connection)
 					return connection;
 			}

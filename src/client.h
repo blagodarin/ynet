@@ -21,13 +21,8 @@ namespace ynet
 		std::string host() const override;
 		uint16_t port() const override;
 
-		virtual void start();
+		void start();
 		void stop();
-
-	protected:
-
-		virtual std::unique_ptr<ConnectionImpl> connect(const ::sockaddr_storage& sockaddr) = 0;
-		virtual std::unique_ptr<ConnectionImpl> connect_local(uint16_t port) = 0;
 
 	private:
 

@@ -7,7 +7,9 @@ add_library(ynet
 	src/address.cpp
 	src/client.cpp
 	src/connection.cpp
+	src/local.cpp
 	src/server.cpp
+	src/socket.cpp
 	src/tcp.cpp
 	src/ynet.cpp)
 

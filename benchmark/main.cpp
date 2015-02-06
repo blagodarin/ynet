@@ -153,25 +153,25 @@ int main(int argc, char** argv)
 		benchmark_connect_disconnect(results, 1);
 		print_table(results);
 	}
-	if (options.count("exchange"))
+	if (options.count("send"))
 	{
 		Table results;
-		for (int i = 0; i <= 24; ++i)
-			benchmark_exchange(results, 10, 1 << i);
+		for (int i = 0; i <= 29; ++i)
+			benchmark_send(results, 10, 1 << i);
 		print_table(results);
 	}
 	if (options.count("receive"))
 	{
 		Table results;
-		for (int i = 0; i <= 24; ++i)
+		for (int i = 0; i <= 29; ++i)
 			benchmark_receive(results, 10, 1 << i);
 		print_table(results);
 	}
-	if (options.count("send"))
+	if (options.count("exchange"))
 	{
 		Table results;
-		for (int i = 0; i <= 24; ++i)
-			benchmark_send(results, 10, 1 << i);
+		for (int i = 0; i <= 29; ++i)
+			benchmark_exchange(results, 10, 1 << i);
 		print_table(results);
 	}
 	return 0;

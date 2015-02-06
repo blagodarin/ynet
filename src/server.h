@@ -14,7 +14,7 @@ namespace ynet
 	{
 	public:
 
-		ServerImpl(Callbacks& callbacks, uint16_t port);
+		ServerImpl(Callbacks& callbacks, uint16_t port, const Options& options);
 		~ServerImpl() override;
 
 		std::string address() const override;
@@ -44,8 +44,9 @@ namespace ynet
 		const ::sockaddr_storage _sockaddr;
 		const Address _address;
 		const int _relisten_timeout;
+		const Options _options;
 		std::mutex _mutex;
-		bool _stopping;
+		bool _stopping = false;
 		std::condition_variable _stop_event;
 		std::thread _thread;
 	};

@@ -8,212 +8,11 @@
 #include <poll.h>
 #include <unistd.h>
 
-#include "connection.h"
+#include "socket.h"
 
 namespace ynet
 {
-	const size_t TcpBufferSize = 48 * 1024;
-
-	class TcpSocket
-	{
-	public:
-
-		TcpSocket()
-			: _socket(-1)
-		{
-		}
-
-		TcpSocket(int socket)
-			: _socket(socket)
-		{
-		}
-
-		TcpSocket(TcpSocket&& socket)
-			: _socket(socket._socket)
-		{
-			socket._socket = -1;
-		}
-
-		~TcpSocket()
-		{
-			reset();
-		}
-
-		explicit operator bool() const
-		{
-			return _socket != -1;
-		}
-
-		int get() const
-		{
-			return _socket;
-		}
-
-		int release()
-		{
-			const auto socket = _socket;
-			_socket = -1;
-			return socket;
-		}
-
-		void reset()
-		{
-			if (_socket != -1)
-			{
-				::close(_socket);
-				_socket = -1;
-			}
-		}
-
-		TcpSocket(const TcpSocket&) = delete;
-		TcpSocket& operator=(const TcpSocket&) = delete;
-		TcpSocket& operator=(TcpSocket&&) = delete;
-
-	private:
-
-		int _socket;
-	};
-
-	class TcpConnection: public ConnectionImpl
-	{
-	public:
-
-		enum
-		{
-			NonblockingRecv = 1 << 0,
-		};
-
-		TcpConnection(const ::sockaddr_storage& sockaddr, TcpSocket&& socket, unsigned flags)
-			: ConnectionImpl(sockaddr)
-			, _socket(std::move(socket))
-			, _flags(flags)
-			, _closed(false)
-		{
-		}
-
-		~TcpConnection() override
-		{
-			::close(_socket.get());
-		}
-
-		void close() override
-		{
-			std::lock_guard<std::mutex> lock(_mutex);
-			if (!_closed)
-			{
-				_closed = true;
-				::shutdown(_socket.get(), SHUT_WR);
-			}
-		}
-
-		bool exhausted() const override
-		{
-			::pollfd pollfd;
-			::memset(&pollfd, 0, sizeof pollfd);
-			pollfd.fd = _socket.get();
-			pollfd.events = POLLRDHUP;
-			if (::poll(&pollfd, 1, 0) < 0)
-				throw std::system_error(errno, std::generic_category());
-			return pollfd.revents;
-		}
-
-		bool send(const void* data, size_t size) override
-		{
-			std::lock_guard<std::mutex> lock(_mutex);
-			if (_closed)
-				return false;
-			const auto sent_size = ::send(_socket.get(), data, size, MSG_NOSIGNAL);
-			if (sent_size == -1)
-			{
-				switch (errno)
-				{
-				case ECONNRESET:
-					_closed = true;
-					return false;
-				default:
-					throw std::system_error(errno, std::generic_category());
-				}
-			}
-			else if (static_cast<size_t>(sent_size) != size)
-			{
-				// Neither POSIX nor 'man send' explicitly state this can't happen.
-				throw std::logic_error("Blocking 'send' sent " + std::to_string(sent_size) + " bytes of " + std::to_string(size) + " requested");
-			}
-			return true;
-		}
-
-		size_t receive(void* data, size_t size, bool* disconnected) override
-		{
-			const auto received_size = ::recv(_socket.get(), data, size, _flags & NonblockingRecv ? MSG_DONTWAIT : 0);
-			if (received_size == -1)
-			{
-				switch (errno)
-				{
-				case EAGAIN:
-			#if EWOULDBLOCK != EAGAIN
-				case EWOULDBLOCK:
-			#endif
-					if (!(_flags & NonblockingRecv))
-					{
-						// "...a receive timeout had been set and the timeout expired before data was received." (c) 'man recv'
-						throw std::logic_error("Blocking 'recv' timed out");
-					}
-					return 0;
-				case ECONNRESET:
-					if (disconnected)
-						*disconnected = true;
-					return 0;
-				default:
-					throw std::system_error(errno, std::generic_category());
-				}
-			}
-			else if (received_size == 0)
-			{
-				if (disconnected)
-					*disconnected = true;
-				return 0;
-			}
-			else
-				return received_size;
-		}
-
-		size_t receive_buffer_size() const override
-		{
-			return TcpBufferSize;
-		}
-
-	private:
-
-		std::mutex _mutex;
-		TcpSocket _socket;
-		const unsigned _flags;
-		bool _closed;
-	};
-
-	TcpClient::TcpClient(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options)
-		: ClientImpl(callbacks, host, port, options)
-	{
-	}
-
-	TcpClient::~TcpClient()
-	{
-		stop();
-	}
-
-	std::unique_ptr<ConnectionImpl> TcpClient::connect(const ::sockaddr_storage& sockaddr)
-	{
-		TcpSocket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
-		if (!socket)
-			return {};
-		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
-			return {};
-		return std::unique_ptr<ConnectionImpl>(new TcpConnection(sockaddr, std::move(socket), 0));
-	}
-
-	std::unique_ptr<ConnectionImpl> TcpClient::connect_local(uint16_t)
-	{
-		return {};
-	}
+	const size_t TcpBufferSize = 64 * 1024; // Arbitrary value.
 
 	struct TcpServer::Private
 	{
@@ -222,8 +21,8 @@ namespace ynet
 		bool _shutting_down = false;
 	};
 
-	TcpServer::TcpServer(Callbacks& callbacks, uint16_t port)
-		: ServerImpl(callbacks, port)
+	TcpServer::TcpServer(Callbacks& callbacks, uint16_t port, const Options& options)
+		: ServerImpl(callbacks, port, options)
 		, _private(new Private())
 	{
 	}
@@ -237,7 +36,7 @@ namespace ynet
 
 	bool TcpServer::listen(const ::sockaddr_storage& sockaddr)
 	{
-		TcpSocket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
+		Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (!socket)
 			throw std::system_error(errno, std::generic_category());
 		if (::bind(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
@@ -271,7 +70,7 @@ namespace ynet
 		{
 			::sockaddr_storage sockaddr;
 			auto sockaddr_size = sizeof sockaddr;
-			TcpSocket peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
+			Socket peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
 			if (!peer)
 			{
 				if (errno == ECONNABORTED)
@@ -279,7 +78,8 @@ namespace ynet
 				throw std::system_error(errno, std::generic_category());
 			}
 			const auto peer_socket = peer.get();
-			const std::shared_ptr<ConnectionImpl> connection(new TcpConnection(sockaddr, std::move(peer), TcpConnection::NonblockingRecv));
+			const std::shared_ptr<ConnectionImpl> connection(
+				new SocketConnection(sockaddr, std::move(peer), SocketConnection::NonblockingRecv, TcpBufferSize));
 			on_connected(connection);
 			connections.emplace(peer_socket, connection);
 		};
@@ -331,6 +131,9 @@ namespace ynet
 				stopping = true;
 				for (const auto& connection : connections)
 					connection.second->close();
+				// TODO: Consider aborting the connection here instead of gracefully closing it.
+				// The current implementation hangs if the client is constantly sending us data
+				// and doesn't check for the server to become exhausted.
 			}
 		}
 
@@ -344,5 +147,15 @@ namespace ynet
 			return;
 		::shutdown(_private->_socket, SHUT_RD);
 		_private->_shutting_down = true;
+	}
+
+	std::unique_ptr<ConnectionImpl> create_tcp_connection(const ::sockaddr_storage& sockaddr)
+	{
+		Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
+		if (!socket)
+			return {};
+		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
+			return {};
+		return std::unique_ptr<ConnectionImpl>(new SocketConnection(sockaddr, std::move(socket), 0, TcpBufferSize));
 	}
 }

@@ -16,7 +16,8 @@ namespace ynet
 		std::string _name;
 
 		explicit Address(const ::sockaddr_storage& sockaddr);
-		Address(const std::string& address, int port): Address(make_sockaddr(address, port)) {}
+		explicit Address(uint16_t port): _port(port), _name(':' + std::to_string(_port)) {}
+		Address(const std::string& address, uint16_t port): Address(make_sockaddr(address, port)) {}
 
 		Address() = default;
 		Address(const Address&) = delete;

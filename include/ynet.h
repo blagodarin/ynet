@@ -76,6 +76,7 @@ namespace ynet
 		struct Options
 		{
 			unsigned reconnect_timeout; //!<
+			bool optimized_loopback; //!<
 
 			Options();
 		};
@@ -127,7 +128,15 @@ namespace ynet
 		};
 
 		//!
-		static std::unique_ptr<Server> create(Callbacks& callbacks, uint16_t port);
+		struct Options
+		{
+			bool optimized_loopback; //!<
+
+			Options();
+		};
+
+		//!
+		static std::unique_ptr<Server> create(Callbacks& callbacks, uint16_t port, const Options& options = Options());
 
 		virtual ~Server() = default;
 

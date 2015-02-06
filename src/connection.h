@@ -9,7 +9,8 @@ namespace ynet
 	{
 	public:
 
-		explicit ConnectionImpl(const ::sockaddr_storage& sockaddr): _address(sockaddr) {}
+		ConnectionImpl(const ::sockaddr_storage& sockaddr): _address(sockaddr) {}
+		ConnectionImpl(uint16_t port): _address(port) {}
 		~ConnectionImpl() override = default;
 
 		std::string address() const override;

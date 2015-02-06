@@ -6,12 +6,17 @@
 
 namespace ynet
 {
-	ServerImpl::ServerImpl(Server::Callbacks& callbacks, uint16_t port)
+	Server::Options::Options()
+		: optimized_loopback(true)
+	{
+	}
+
+	ServerImpl::ServerImpl(Server::Callbacks& callbacks, uint16_t port, const Options& options)
 		: _callbacks(callbacks)
 		, _sockaddr(make_sockaddr("0.0.0.0", port)) // TODO: Change to :: for an IPv6 server.
 		, _address(_sockaddr)
 		, _relisten_timeout(1000)
-		, _stopping(false)
+		, _options(options)
 	{
 	}
 
