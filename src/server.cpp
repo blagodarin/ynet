@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "connection.h"
+#include "tcp.h"
 
 namespace ynet
 {
@@ -13,17 +14,30 @@ namespace ynet
 
 	ServerImpl::ServerImpl(Server::Callbacks& callbacks, uint16_t port, const Options& options)
 		: _callbacks(callbacks)
+		, _handlers(*this, _callbacks)
+		, _options(options)
+		, _relisten_timeout(1000)
 		, _sockaddr(make_sockaddr("0.0.0.0", port)) // TODO: Change to :: for an IPv6 server.
 		, _address(_sockaddr)
-		, _relisten_timeout(1000)
-		, _options(options)
+		, _thread(std::bind(&ServerImpl::run, this))
 	{
 	}
 
 	ServerImpl::~ServerImpl()
 	{
-		if (_thread.joinable())
-			throw std::logic_error("A server must be explicitly stopped");
+		assert(_thread.joinable());
+		assert(_thread.get_id() != std::this_thread::get_id());
+		{
+			std::lock_guard<std::mutex> lock(_mutex);
+			_stopping = true;
+			if (_backend)
+			{
+				_backend->shutdown();
+				_backend = nullptr;
+			}
+		}
+		_stop_event.notify_one();
+		_thread.join();
 	}
 
 	std::string ServerImpl::address() const
@@ -41,30 +55,18 @@ namespace ynet
 		return _address._port;
 	}
 
-	void ServerImpl::start()
-	{
-		_thread = std::thread(std::bind(&ServerImpl::run, this));
-	}
-
-	void ServerImpl::stop()
-	{
-		if (!_thread.joinable())
-			return; // It is a sequential stop call during a hierarchical destruction.
-		if (_thread.get_id() == std::this_thread::get_id())
-			throw std::logic_error("A server must not be stopped from its thread");
-		{
-			std::lock_guard<std::mutex> lock(_mutex);
-			_stopping = true;
-			shutdown();
-		}
-		_stop_event.notify_one();
-		_thread.join();
-	}
-
 	void ServerImpl::run()
 	{
-		for (bool initial = true; !listen(_sockaddr); )
+		std::unique_ptr<ServerBackend> backend;
+		for (bool initial = true; ; )
 		{
+			backend = create_tcp_server(_sockaddr);
+			if (backend)
+			{
+				std::lock_guard<std::mutex> lock(_mutex);
+				_backend = backend.get();
+				break;
+			}
 			if (initial)
 			{
 				initial = false;
@@ -80,29 +82,7 @@ namespace ynet
 				return;
 		}
 		_callbacks.on_started(*this);
-		poll();
+		backend->poll(_handlers);
 		_callbacks.on_stopped(*this);
-	}
-
-	void ServerImpl::on_connected(const std::shared_ptr<Connection>& connection)
-	{
-		_callbacks.on_connected(*this, connection);
-	}
-
-	void ServerImpl::on_received(const std::shared_ptr<Connection>& connection, void* buffer, size_t buffer_size, bool& disconnected)
-	{
-		for (;;)
-		{
-			const size_t size = static_cast<ConnectionImpl*>(connection.get())->receive(buffer, buffer_size, &disconnected);
-			if (size > 0)
-				_callbacks.on_received(*this, connection, buffer, size);
-			if (size < buffer_size)
-				break;
-		}
-	}
-
-	void ServerImpl::on_disconnected(const std::shared_ptr<Connection>& connection)
-	{
-		_callbacks.on_disconnected(*this, connection);
 	}
 }

@@ -1,7 +1,7 @@
 #include <ynet.h>
 
 #include "client.h"
-#include "tcp.h"
+#include "server.h"
 
 namespace ynet
 {
@@ -36,8 +36,6 @@ namespace ynet
 
 	std::unique_ptr<Server> Server::create(Callbacks& callbacks, uint16_t port, const Options& options)
 	{
-		std::unique_ptr<ServerImpl> server(new TcpServer(callbacks, port, options));
-		server->start();
-		return std::move(server);
+		return std::unique_ptr<ServerImpl>(new ServerImpl(callbacks, port, options));
 	}
 }

@@ -5,11 +5,10 @@
 
 #include <ynet.h>
 #include "address.h"
+#include "backend.h"
 
 namespace ynet
 {
-	class ConnectionImpl;
-
 	class ServerImpl: public Server
 	{
 	public:
@@ -21,19 +20,6 @@ namespace ynet
 		std::string name() const override;
 		uint16_t port() const override;
 
-		virtual void start();
-		void stop();
-
-		void on_connected(const std::shared_ptr<Connection>& connection);
-		void on_received(const std::shared_ptr<Connection>& connection, void* buffer, size_t buffer_size, bool& disconnected);
-		void on_disconnected(const std::shared_ptr<Connection>& connection);
-
-	protected:
-
-		virtual bool listen(const ::sockaddr_storage& sockaddr) = 0;
-		virtual void poll() = 0;
-		virtual void shutdown() = 0;
-
 	private:
 
 		void run();
@@ -41,12 +27,14 @@ namespace ynet
 	private:
 
 		Callbacks& _callbacks;
+		ServerHandlers _handlers;
+		const Options _options;
+		const int _relisten_timeout;
 		const ::sockaddr_storage _sockaddr;
 		const Address _address;
-		const int _relisten_timeout;
-		const Options _options;
 		std::mutex _mutex;
 		bool _stopping = false;
+		ServerBackend* _backend = nullptr;
 		std::condition_variable _stop_event;
 		std::thread _thread;
 	};

@@ -5,6 +5,7 @@ include_directories(include)
 
 add_library(ynet
 	src/address.cpp
+	src/backend.cpp
 	src/client.cpp
 	src/connection.cpp
 	src/local.cpp

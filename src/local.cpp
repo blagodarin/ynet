@@ -4,6 +4,7 @@
 
 #include <sys/un.h>
 
+#include "backend.h"
 #include "socket.h"
 
 namespace ynet
@@ -30,5 +31,10 @@ namespace ynet
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sockaddr_size) == -1)
 			return {};
 		return std::unique_ptr<ConnectionImpl>(new SocketConnection(port, std::move(socket), 0, LocalBufferSize));
+	}
+
+	std::unique_ptr<ServerBackend> create_local_server(uint16_t)
+	{
+		return {}; // TODO: Implement.
 	}
 }

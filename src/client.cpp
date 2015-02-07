@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "connection.h"
 #include "local.h"
 #include "tcp.h"
 
@@ -57,7 +58,7 @@ namespace ynet
 		const auto resolve_and_connect = [this]() -> std::unique_ptr<ConnectionImpl>
 		{
 			const auto& resolved = resolve(_host, _port);
-			if (resolved.local)
+			if (_options.optimized_loopback && resolved.local)
 			{
 				auto connection = create_local_connection(_port);
 				if (connection)
