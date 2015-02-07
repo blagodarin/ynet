@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "connection.h"
+#include "local.h"
 #include "tcp.h"
 
 namespace ynet
@@ -34,6 +35,11 @@ namespace ynet
 			{
 				_backend->shutdown();
 				_backend = nullptr;
+			}
+			if (_local_backend)
+			{
+				_local_backend->shutdown();
+				_local_backend = nullptr;
 			}
 		}
 		_stop_event.notify_one();
@@ -81,8 +87,73 @@ namespace ynet
 			else if (_stopping)
 				return;
 		}
+
+		std::thread local_thread;
+		if (_options.optimized_loopback)
+		{
+			local_thread = std::thread(std::bind(&ServerImpl::run_local, this));
+			std::unique_lock<std::mutex> lock(_mutex);
+			_local_server_started.wait(lock, [this]() { return _local_backend || _stopping; });
+			if (_stopping)
+			{
+				lock.unlock();
+				local_thread.join();
+				return;
+			}
+		}
+
 		_callbacks.on_started(*this);
+
+		if (_options.optimized_loopback)
+		{
+			{
+				std::lock_guard<std::mutex> lock(_mutex);
+				_start_local_polling = true;
+			}
+			_start_local_polling_condition.notify_one();
+		}
+
 		backend->poll(_handlers);
+
+		if (_options.optimized_loopback)
+			local_thread.join();
+
 		_callbacks.on_stopped(*this);
+	}
+
+	void ServerImpl::run_local()
+	{
+		std::unique_ptr<ServerBackend> backend;
+		for (; ; )
+		{
+			backend = create_local_server(_address._port);
+			if (backend)
+			{
+				std::lock_guard<std::mutex> lock(_mutex);
+				_local_backend = backend.get();
+				break;
+			}
+			std::unique_lock<std::mutex> lock(_mutex);
+			if (_relisten_timeout > 0)
+			{
+				if (_stop_event.wait_for(lock, std::chrono::milliseconds(_relisten_timeout), [this]() { return _stopping; }))
+					break;
+			}
+			else if (_stopping)
+				break;
+		}
+
+		_local_server_started.notify_one();
+		if (!backend)
+			return;
+
+		{
+			std::unique_lock<std::mutex> lock(_mutex);
+			_start_local_polling_condition.wait(lock, [this]() { return _start_local_polling || _stopping; });
+			if (_stopping)
+				return;
+		}
+
+		backend->poll(_handlers);
 	}
 }

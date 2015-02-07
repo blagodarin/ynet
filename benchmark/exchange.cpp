@@ -2,8 +2,25 @@
 
 #include <cstring>
 
-ExchangeClient::ExchangeClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes)
-	: BenchmarkClient(host, port, seconds)
+namespace
+{
+	ynet::Client::Options client_options(bool optimized_loopback)
+	{
+		ynet::Client::Options options;
+		options.optimized_loopback = optimized_loopback;
+		return options;
+	}
+
+	ynet::Server::Options server_options(bool optimized_loopback)
+	{
+		ynet::Server::Options options;
+		options.optimized_loopback = optimized_loopback;
+		return options;
+	}
+}
+
+ExchangeClient::ExchangeClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback)
+	: BenchmarkClient(host, port, seconds, ::client_options(optimized_loopback))
 	, _buffer(bytes)
 {
 }
@@ -37,8 +54,8 @@ void ExchangeClient::on_failed_to_connect(const ynet::Client&)
 	discard_benchmark();
 }
 
-ExchangeServer::ExchangeServer(uint16_t port, size_t bytes)
-	: BenchmarkServer(port)
+ExchangeServer::ExchangeServer(uint16_t port, size_t bytes, bool optimized_loopback)
+	: BenchmarkServer(port, ::server_options(optimized_loopback))
 	, _buffer(bytes)
 {
 }

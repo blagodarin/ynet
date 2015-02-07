@@ -23,6 +23,7 @@ namespace ynet
 	private:
 
 		void run();
+		void run_local();
 
 	private:
 
@@ -33,9 +34,13 @@ namespace ynet
 		const ::sockaddr_storage _sockaddr;
 		const Address _address;
 		std::mutex _mutex;
-		bool _stopping = false;
 		ServerBackend* _backend = nullptr;
+		bool _stopping = false;
 		std::condition_variable _stop_event;
 		std::thread _thread;
+		ServerBackend* _local_backend = nullptr;
+		std::condition_variable _local_server_started;
+		bool _start_local_polling = false;
+		std::condition_variable _start_local_polling_condition;
 	};
 }

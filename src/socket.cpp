@@ -29,11 +29,6 @@ namespace ynet
 	{
 	}
 
-	SocketConnection::~SocketConnection()
-	{
-		::close(_socket.get());
-	}
-
 	void SocketConnection::close()
 	{
 		std::lock_guard<std::mutex> lock(_mutex);

@@ -8,7 +8,7 @@ class ReceiveClient: public BenchmarkClient
 {
 public:
 
-	ReceiveClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes);
+	ReceiveClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback);
 
 	uint64_t bytes() const { return _bytes; }
 	uint64_t marks() const { return _bytes / _bytes_per_mark; }
@@ -30,7 +30,7 @@ class ReceiveServer: public BenchmarkServer
 {
 public:
 
-	ReceiveServer(uint16_t port, size_t bytes);
+	ReceiveServer(uint16_t port, size_t bytes, bool optimized_loopback);
 
 private:
 

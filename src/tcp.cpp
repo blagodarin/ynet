@@ -35,7 +35,7 @@ namespace ynet
 			std::map<int, std::shared_ptr<ConnectionImpl>> connections;
 			std::vector<uint8_t> receive_buffer(TcpBufferSize);
 
-			const auto accept = [this, &connections, &handlers](int socket)
+			const auto accept = [&connections, &handlers](int socket)
 			{
 				::sockaddr_storage sockaddr;
 				auto sockaddr_size = sizeof sockaddr;

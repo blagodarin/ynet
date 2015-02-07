@@ -8,7 +8,7 @@ class ExchangeClient: public BenchmarkClient
 {
 public:
 
-	ExchangeClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes);
+	ExchangeClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback);
 
 	uint64_t bytes() const { return _marks * _buffer.size() * 2; }
 	uint64_t marks() const { return _marks; }
@@ -31,7 +31,7 @@ class ExchangeServer: public BenchmarkServer
 {
 public:
 
-	ExchangeServer(uint16_t port, size_t bytes);
+	ExchangeServer(uint16_t port, size_t bytes, bool optimized_loopback);
 
 private:
 

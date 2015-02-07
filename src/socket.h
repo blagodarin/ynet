@@ -61,7 +61,7 @@ namespace ynet
 
 		SocketConnection(const ::sockaddr_storage& sockaddr, Socket&& socket, unsigned flags, size_t receive_buffer_size);
 		SocketConnection(uint16_t port, Socket&& socket, unsigned flags, size_t receive_buffer_size);
-		~SocketConnection() override;
+		~SocketConnection() override = default;
 
 		void close() override;
 		bool exhausted() const override;

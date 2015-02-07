@@ -74,8 +74,8 @@ void BenchmarkClient::on_started(const ynet::Client&)
 	start_benchmark();
 }
 
-BenchmarkServer::BenchmarkServer(uint16_t port)
-	: _server(ynet::Server::create(*this, port))
+BenchmarkServer::BenchmarkServer(uint16_t port, const ynet::Server::Options& options)
+	: _server(ynet::Server::create(*this, port, options))
 {
 	std::unique_lock<std::mutex> lock(_mutex);
 	_start_condition.wait(lock, [this]() { return _start_flag; });

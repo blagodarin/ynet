@@ -1,3 +1,5 @@
+#include <cassert>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <unordered_set>
@@ -9,6 +11,30 @@
 
 using Row = std::vector<std::string>;
 using Table = std::vector<std::vector<std::string>>;
+
+struct BenchmarkResults
+{
+	uint64_t milliseconds = 0;
+	uint64_t operations = 0;
+	size_t unit_bytes = 0;
+	uint64_t total_bytes = 0;
+
+	BenchmarkResults() = default;
+
+	BenchmarkResults(uint64_t milliseconds, uint64_t operations)
+		: milliseconds(milliseconds)
+		, operations(operations)
+	{
+	}
+
+	BenchmarkResults(uint64_t milliseconds, uint64_t operations, size_t unit_bytes, uint64_t total_bytes)
+		: milliseconds(milliseconds)
+		, operations(operations)
+		, unit_bytes(unit_bytes)
+		, total_bytes(total_bytes)
+	{
+	}
+};
 
 namespace
 {
@@ -49,97 +75,104 @@ namespace
 		}
 		std::cout << std::endl;
 	}
+
+	void print_results(const std::vector<BenchmarkResults>& results)
+	{
+		Table table;
+		table.reserve(results.size());
+		for (const auto& result : results)
+		{
+			Row row;
+			if (result.unit_bytes > 0)
+				row.emplace_back(make_human_readable(result.unit_bytes));
+			const auto seconds = result.milliseconds / 1000.0;
+			row.emplace_back(std::to_string(seconds) + " s");
+			row.emplace_back(std::to_string(result.operations) + " ops");
+			row.emplace_back(std::to_string(result.operations / seconds) + " ops/s");
+			if (result.unit_bytes > 0)
+			{
+				row.emplace_back(make_human_readable(result.total_bytes));
+				row.emplace_back(std::to_string(result.total_bytes / (seconds * 1024 * 1024)) + " MiB/s");
+			}
+			table.emplace_back(std::move(row));
+		}
+		print_table(table);
+	}
+
+	void print_compared(const std::vector<BenchmarkResults>& first, const std::vector<BenchmarkResults>& second)
+	{
+		Table table;
+		assert(first.size() == second.size());
+		table.reserve(first.size());
+		for (size_t i = 0; i < first.size(); ++i)
+		{
+			Row row;
+			assert(first[i].unit_bytes == second[i].unit_bytes);
+			if (first[i].unit_bytes > 0)
+				row.emplace_back(make_human_readable(first[i].unit_bytes));
+			const auto seconds = first[i].milliseconds / 1000.0;
+			row.emplace_back(std::to_string(seconds) + " s");
+			const auto first_ops_s = ::lround(first[i].operations / seconds);
+			row.emplace_back(std::to_string(first_ops_s) + " ops/s");
+			const auto second_ops_s = ::lround(second[i].operations / seconds);
+			row.emplace_back(std::to_string(second_ops_s) + " ops/s");
+			if (first[i].unit_bytes > 0)
+			{
+				row.emplace_back(std::to_string(first[i].total_bytes / (seconds * 1024 * 1024)) + " MiB/s");
+				row.emplace_back(std::to_string(second[i].total_bytes / (seconds * 1024 * 1024)) + " MiB/s");
+			}
+			row.emplace_back(std::to_string(second_ops_s * 1.0 / first_ops_s) + " x");
+			table.emplace_back(std::move(row));
+		}
+		print_table(table);
+	}
 }
 
-void benchmark_connect_disconnect(Table& results, unsigned seconds)
+BenchmarkResults benchmark_connect_disconnect(unsigned seconds)
 {
 	std::cout << "Benchmarking connect-disconnect (1 thread, " << seconds << " s)..." << std::endl;
 	ConnectDisconnectServer server(5445);
 	ConnectDisconnectClient client("localhost", 5445, seconds);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
-	{
-		results.emplace_back(Row{"FAILED"});
-		return;
-	}
-	const auto marks = client.marks();
-	const auto elapsed_seconds = milliseconds / 1000.0;
-	results.emplace_back(Row{
-		std::to_string(marks) + " ops",
-		std::to_string(elapsed_seconds) + " s",
-		std::to_string(marks / elapsed_seconds) + " ops/s"});
+		return {};
+	return BenchmarkResults(milliseconds, client.marks());
 }
 
-void benchmark_exchange(Table& results, unsigned seconds, size_t bytes)
+BenchmarkResults benchmark_exchange(unsigned seconds, size_t bytes, bool optimized_loopback)
 {
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking exchange (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
-	ExchangeServer server(5445, bytes);
-	ExchangeClient client("localhost", 5445, seconds, bytes);
-	const auto elapsed_milliseconds = client.run();
-	if (elapsed_milliseconds < 0)
-	{
-		results.emplace_back(Row{"FAILED"});
-		return;
-	}
-	const auto elapsed_seconds = elapsed_milliseconds / 1000.0;
-	const auto marks = client.marks();
-	const auto processed_bytes = client.bytes();
-	results.emplace_back(Row{
-		human_readable_bytes,
-		std::to_string(elapsed_seconds) + " s",
-		std::to_string(marks) + " ops",
-		std::to_string(marks / elapsed_seconds) + " ops/s",
-		::make_human_readable(processed_bytes),
-		std::to_string(processed_bytes / (elapsed_seconds * 1024 * 1024)) + " MiB/s"});
+	ExchangeServer server(5445, bytes, optimized_loopback);
+	ExchangeClient client("localhost", 5445, seconds, bytes, optimized_loopback);
+	const auto milliseconds = client.run();
+	if (milliseconds < 0)
+		return {};
+	return BenchmarkResults(milliseconds, client.marks(), bytes, client.bytes());
 }
 
-void benchmark_receive(Table& results, unsigned seconds, size_t bytes)
+BenchmarkResults benchmark_receive(unsigned seconds, size_t bytes, bool optimized_loopback)
 {
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking receive (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
-	ReceiveServer server(5445, bytes);
-	ReceiveClient client("localhost", 5445, seconds, bytes);
-	const auto elapsed_milliseconds = client.run();
-	if (elapsed_milliseconds < 0)
-	{
-		results.emplace_back(Row{"FAILED"});
-		return;
-	}
-	const auto elapsed_seconds = elapsed_milliseconds / 1000.0;
-	const auto marks = client.marks();
-	const auto processed_bytes = client.bytes();
-	results.emplace_back(Row{
-		human_readable_bytes,
-		std::to_string(elapsed_seconds) + " s",
-		std::to_string(marks) + " ops",
-		std::to_string(marks / elapsed_seconds) + " ops/s",
-		::make_human_readable(processed_bytes),
-		std::to_string(processed_bytes / (elapsed_seconds * 1024 * 1024)) + " MiB/s"});
+	ReceiveServer server(5445, bytes, optimized_loopback);
+	ReceiveClient client("localhost", 5445, seconds, bytes, optimized_loopback);
+	const auto milliseconds = client.run();
+	if (milliseconds < 0)
+		return {};
+	return BenchmarkResults(milliseconds, client.marks(), bytes, client.bytes());
 }
 
-void benchmark_send(Table& results, unsigned seconds, size_t bytes)
+BenchmarkResults benchmark_send(unsigned seconds, size_t bytes, bool optimized_loopback)
 {
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking send (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
-	SendServer server(5445);
-	SendClient client("localhost", 5445, seconds, bytes);
-	const auto elapsed_milliseconds = client.run();
-	if (elapsed_milliseconds < 0)
-	{
-		results.emplace_back(Row{"FAILED"});
-		return;
-	}
-	const auto elapsed_seconds = elapsed_milliseconds / 1000.0;
-	const auto marks = client.marks();
-	const auto processed_bytes = client.bytes();
-	results.emplace_back(Row{
-		human_readable_bytes,
-		std::to_string(elapsed_seconds) + " s",
-		std::to_string(marks) + " ops",
-		std::to_string(marks / elapsed_seconds) + " ops/s",
-		::make_human_readable(processed_bytes),
-		std::to_string(processed_bytes / (elapsed_seconds * 1024 * 1024)) + " MiB/s"});
+	SendServer server(5445, optimized_loopback);
+	SendClient client("localhost", 5445, seconds, bytes, optimized_loopback);
+	const auto milliseconds = client.run();
+	if (milliseconds < 0)
+		return {};
+	return BenchmarkResults(milliseconds, client.marks(), bytes, client.bytes());
 }
 
 int main(int argc, char** argv)
@@ -149,30 +182,57 @@ int main(int argc, char** argv)
 		options.emplace(argv[i]);
 	if (options.count("connect"))
 	{
-		Table results;
-		benchmark_connect_disconnect(results, 1);
-		print_table(results);
+		std::vector<BenchmarkResults> results;
+		results.emplace_back(benchmark_connect_disconnect(1));
+		print_results(results);
 	}
 	if (options.count("send"))
 	{
-		Table results;
+		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			benchmark_send(results, 10, 1 << i);
-		print_table(results);
+			results.emplace_back(benchmark_send(10, 1 << i, false));
+		print_results(results);
 	}
 	if (options.count("receive"))
 	{
-		Table results;
+		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			benchmark_receive(results, 10, 1 << i);
-		print_table(results);
+			results.emplace_back(benchmark_receive(10, 1 << i, false));
+		print_results(results);
 	}
 	if (options.count("exchange"))
 	{
-		Table results;
+		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			benchmark_exchange(results, 10, 1 << i);
-		print_table(results);
+			results.emplace_back(benchmark_exchange(10, 1 << i, false));
+		print_results(results);
+	}
+	if (options.count("local"))
+	{
+		std::vector<BenchmarkResults> base;
+		std::vector<BenchmarkResults> local;
+		for (int i = 0; i <= 29; ++i)
+		{
+			base.emplace_back(benchmark_send(10, 1 << i, false));
+			local.emplace_back(benchmark_send(10, 1 << i, true));
+		}
+		print_compared(base, local);
+		base.clear();
+		local.clear();
+		for (int i = 0; i <= 29; ++i)
+		{
+			base.emplace_back(benchmark_receive(10, 1 << i, false));
+			local.emplace_back(benchmark_receive(10, 1 << i, true));
+		}
+		print_compared(base, local);
+		base.clear();
+		local.clear();
+		for (int i = 0; i <= 29; ++i)
+		{
+			base.emplace_back(benchmark_exchange(10, 1 << i, false));
+			local.emplace_back(benchmark_exchange(10, 1 << i, true));
+		}
+		print_compared(base, local);
 	}
 	return 0;
 }

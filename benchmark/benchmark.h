@@ -42,7 +42,7 @@ class BenchmarkServer: public ynet::Server::Callbacks
 {
 public:
 
-	BenchmarkServer(uint16_t port);
+	BenchmarkServer(uint16_t port, const ynet::Server::Options& options = {});
 
 private:
 
