@@ -2,16 +2,24 @@
 
 namespace
 {
-	ynet::Client::Options client_options()
+	ynet::Client::Options client_options(bool optimized_loopback)
 	{
 		ynet::Client::Options options;
 		options.reconnect_timeout = 0;
+		options.optimized_loopback = optimized_loopback;
+		return options;
+	}
+
+	ynet::Server::Options server_options(bool optimized_loopback)
+	{
+		ynet::Server::Options options;
+		options.optimized_loopback = optimized_loopback;
 		return options;
 	}
 }
 
-ConnectDisconnectClient::ConnectDisconnectClient(const std::string& host, uint16_t port, int64_t seconds)
-	: BenchmarkClient(host, port, seconds, client_options())
+ConnectDisconnectClient::ConnectDisconnectClient(uint16_t port, int64_t seconds, bool optimized_loopback)
+	: BenchmarkClient(port, seconds, client_options(optimized_loopback))
 {
 }
 
@@ -35,8 +43,8 @@ void ConnectDisconnectClient::on_failed_to_connect(const ynet::Client&)
 	discard_benchmark();
 }
 
-ConnectDisconnectServer::ConnectDisconnectServer(uint16_t port)
-	: BenchmarkServer(port)
+ConnectDisconnectServer::ConnectDisconnectServer(uint16_t port, bool optimized_loopback)
+	: BenchmarkServer(port, server_options(optimized_loopback))
 {
 }
 

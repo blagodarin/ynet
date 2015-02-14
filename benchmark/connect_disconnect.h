@@ -6,7 +6,7 @@ class ConnectDisconnectClient: public BenchmarkClient
 {
 public:
 
-	ConnectDisconnectClient(const std::string& host, uint16_t port, int64_t seconds);
+	ConnectDisconnectClient(uint16_t port, int64_t seconds, bool optimized_loopback);
 
 	const unsigned marks() const { return _marks; }
 
@@ -26,7 +26,8 @@ class ConnectDisconnectServer: public BenchmarkServer
 {
 public:
 
-	ConnectDisconnectServer(uint16_t port);
+	ConnectDisconnectServer(uint16_t port, bool optimized_loopback);
+	~ConnectDisconnectServer() override { stop(); }
 
 private:
 

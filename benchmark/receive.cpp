@@ -17,8 +17,8 @@ namespace
 	}
 }
 
-ReceiveClient::ReceiveClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback)
-	: BenchmarkClient(host, port, seconds, ::client_options(optimized_loopback))
+ReceiveClient::ReceiveClient(uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback)
+	: BenchmarkClient(port, seconds, ::client_options(optimized_loopback))
 	, _bytes_per_mark(bytes)
 {
 }

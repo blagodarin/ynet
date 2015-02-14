@@ -128,11 +128,11 @@ namespace
 	}
 }
 
-BenchmarkResults benchmark_connect_disconnect(unsigned seconds)
+BenchmarkResults benchmark_connect_disconnect(unsigned seconds, bool optimized_loopback)
 {
 	std::cout << "Benchmarking connect-disconnect (1 thread, " << seconds << " s)..." << std::endl;
-	ConnectDisconnectServer server(5445);
-	ConnectDisconnectClient client("localhost", 5445, seconds);
+	ConnectDisconnectServer server(5445, optimized_loopback);
+	ConnectDisconnectClient client(5445, seconds, optimized_loopback);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
@@ -144,7 +144,7 @@ BenchmarkResults benchmark_exchange(unsigned seconds, size_t bytes, bool optimiz
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking exchange (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
 	ExchangeServer server(5445, bytes, optimized_loopback);
-	ExchangeClient client("localhost", 5445, seconds, bytes, optimized_loopback);
+	ExchangeClient client(5445, seconds, bytes, optimized_loopback);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
@@ -156,7 +156,7 @@ BenchmarkResults benchmark_receive(unsigned seconds, size_t bytes, bool optimize
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking receive (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
 	ReceiveServer server(5445, bytes, optimized_loopback);
-	ReceiveClient client("localhost", 5445, seconds, bytes, optimized_loopback);
+	ReceiveClient client(5445, seconds, bytes, optimized_loopback);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
@@ -168,7 +168,7 @@ BenchmarkResults benchmark_send(unsigned seconds, size_t bytes, bool optimized_l
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking send (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
 	SendServer server(5445, optimized_loopback);
-	SendClient client("localhost", 5445, seconds, bytes, optimized_loopback);
+	SendClient client(5445, seconds, bytes, optimized_loopback);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
@@ -183,7 +183,13 @@ int main(int argc, char** argv)
 	if (options.count("connect"))
 	{
 		std::vector<BenchmarkResults> results;
-		results.emplace_back(benchmark_connect_disconnect(1));
+		results.emplace_back(benchmark_connect_disconnect(1, false));
+		print_results(results);
+	}
+	if (options.count("connect-local"))
+	{
+		std::vector<BenchmarkResults> results;
+		results.emplace_back(benchmark_connect_disconnect(10, true));
 		print_results(results);
 	}
 	if (options.count("send"))

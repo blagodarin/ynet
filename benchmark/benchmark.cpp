@@ -12,24 +12,20 @@ namespace
 	}
 }
 
-BenchmarkClient::BenchmarkClient(const std::string& host, uint16_t port, int64_t seconds, const ynet::Client::Options& options)
-	: _benchmark_time(seconds * 1000)
-	, _client(ynet::Client::create(*this, host, port, options))
+BenchmarkClient::BenchmarkClient(uint16_t port, int64_t seconds, const ynet::Client::Options& options)
+	: _port(port)
+	, _client_options(options)
+	, _benchmark_time(seconds * 1000)
 {
 }
 
 int64_t BenchmarkClient::run()
 {
 	{
-		std::lock_guard<std::mutex> lock(_mutex);
-		_start_flag = true;
-	}
-	_start_condition.notify_one();
-	{
+		const auto client = ynet::Client::create(*this, "localhost", _port, _client_options);
 		std::unique_lock<std::mutex> lock(_mutex);
 		_stop_condition.wait(lock, [this]() { return _stop_flag; });
 	}
-	_client.reset();
 	return _discarded ? -1 : _elapsed_time;
 }
 
@@ -67,10 +63,6 @@ bool BenchmarkClient::stop_benchmark()
 
 void BenchmarkClient::on_started(const ynet::Client&)
 {
-	{
-		std::unique_lock<std::mutex> lock(_mutex);
-		_start_condition.wait(lock, [this]() { return _start_flag; });
-	}
 	start_benchmark();
 }
 
@@ -78,7 +70,16 @@ BenchmarkServer::BenchmarkServer(uint16_t port, const ynet::Server::Options& opt
 	: _server(ynet::Server::create(*this, port, options))
 {
 	std::unique_lock<std::mutex> lock(_mutex);
-	_start_condition.wait(lock, [this]() { return _start_flag; });
+	_server_started_condition.wait(lock, [this]() { return _server_started; });
+}
+
+void BenchmarkServer::stop()
+{
+	// This is a workaround to stop _server (and perform all callbacks)
+	// before a deriving class starts destroying itself and cleaning up its vtable,
+	// resulting in purecall if _server callbacks after that (e.g. on_disconnected).
+	// TODO: Remove.
+	_server.reset();
 }
 
 void BenchmarkServer::on_failed_to_start(const ynet::Server&)
@@ -89,9 +90,9 @@ void BenchmarkServer::on_started(const ynet::Server&)
 {
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
-		_start_flag = true;
+		_server_started = true;
 	}
-	_start_condition.notify_one();
+	_server_started_condition.notify_one();
 }
 
 void BenchmarkServer::on_stopped(const ynet::Server&)

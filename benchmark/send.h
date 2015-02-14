@@ -8,7 +8,7 @@ class SendClient: public BenchmarkClient
 {
 public:
 
-	SendClient(const std::string& host, uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback);
+	SendClient(uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback);
 
 	uint64_t bytes() const { return _marks * _buffer.size(); }
 	uint64_t marks() const { return _marks; }
@@ -32,6 +32,7 @@ class SendServer: public BenchmarkServer
 public:
 
 	SendServer(uint16_t port, bool optimized_loopback);
+	~SendServer() override { stop(); }
 
 private:
 
