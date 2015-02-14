@@ -3,8 +3,10 @@
 #include <cassert>
 #include <cstddef>
 #include <map>
+#include <vector>
 
 #include <poll.h>
+#include <sys/socket.h>
 #include <sys/un.h>
 
 #include "backend.h"
@@ -38,7 +40,13 @@ namespace ynet
 	{
 	public:
 
-		LocalServer(Socket&& socket, uint16_t port): _socket(std::move(socket)), _port(port) {}
+		LocalServer(Socket&& socket, uint16_t port, std::string&& address)
+			: _socket(std::move(socket))
+			, _port(port)
+			, _address(std::move(address))
+		{
+		}
+
 		~LocalServer() override = default;
 
 		void poll(ServerHandlers& handlers) override
@@ -68,7 +76,7 @@ namespace ynet
 				}
 				const auto peer_socket = peer.get();
 				const std::shared_ptr<ConnectionImpl> connection(
-					new SocketConnection(_port, std::move(peer), SocketConnection::NonblockingRecv, LocalBufferSize));
+					new SocketConnection(std::string(_address), std::move(peer), SocketConnection::NonblockingRecv, LocalBufferSize));
 				handlers.on_connected(connection);
 				connections.emplace(peer_socket, connection);
 				return true;
@@ -139,6 +147,7 @@ namespace ynet
 
 		Socket _socket;
 		const uint16_t _port;
+		const std::string _address;
 	};
 
 	std::unique_ptr<ConnectionImpl> create_local_connection(uint16_t port)
@@ -149,10 +158,11 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
-		return std::unique_ptr<ConnectionImpl>(new SocketConnection(port, std::move(socket), 0, LocalBufferSize));
+		return std::unique_ptr<ConnectionImpl>(new SocketConnection("127.0.0.1", std::move(socket), 0, LocalBufferSize));
+		// TODO: Specify the correct loopback address (IPv4 or IPv6, depending on the server).
 	}
 
-	std::unique_ptr<ServerBackend> create_local_server(uint16_t port)
+	std::unique_ptr<ServerBackend> create_local_server(uint16_t port, bool ipv6_only)
 	{
 		const auto& sockaddr = make_local_sockaddr(port);
 		Socket socket = ::socket(sockaddr.first.sun_family, SOCK_STREAM, 0);
@@ -162,6 +172,6 @@ namespace ynet
 			return {};
 		if (::listen(socket.get(), 16) == -1)
 			return {};
-		return std::unique_ptr<ServerBackend>(new LocalServer(std::move(socket), port));
+		return std::unique_ptr<ServerBackend>(new LocalServer(std::move(socket), port, ipv6_only ? "::1" : "127.0.0.1"));
 	}
 }

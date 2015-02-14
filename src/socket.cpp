@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include <poll.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace ynet
@@ -13,16 +14,8 @@ namespace ynet
 			::close(_socket);
 	}
 
-	SocketConnection::SocketConnection(const ::sockaddr_storage& sockaddr, Socket&& socket, unsigned flags, size_t receive_buffer_size)
-		: ConnectionImpl(sockaddr)
-		, _socket(std::move(socket))
-		, _flags(flags)
-		, _receive_buffer_size(receive_buffer_size)
-	{
-	}
-
-	SocketConnection::SocketConnection(uint16_t port, Socket&& socket, unsigned flags, size_t receive_buffer_size)
-		: ConnectionImpl(port)
+	SocketConnection::SocketConnection(std::string&& address, Socket&& socket, unsigned flags, size_t receive_buffer_size)
+		: ConnectionImpl(std::move(address))
 		, _socket(std::move(socket))
 		, _flags(flags)
 		, _receive_buffer_size(receive_buffer_size)

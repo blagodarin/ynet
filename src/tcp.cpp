@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <poll.h>
 
+#include "address.h"
 #include "backend.h"
 #include "socket.h"
 
@@ -48,7 +49,7 @@ namespace ynet
 				}
 				const auto peer_socket = peer.get();
 				const std::shared_ptr<ConnectionImpl> connection(
-					new SocketConnection(sockaddr, std::move(peer), SocketConnection::NonblockingRecv, TcpBufferSize));
+					new SocketConnection(make_address(sockaddr), std::move(peer), SocketConnection::NonblockingRecv, TcpBufferSize));
 				handlers.on_connected(connection);
 				connections.emplace(peer_socket, connection);
 			};
@@ -126,7 +127,7 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		return std::unique_ptr<ConnectionImpl>(new SocketConnection(sockaddr, std::move(socket), 0, TcpBufferSize));
+		return std::unique_ptr<ConnectionImpl>(new SocketConnection(make_address(sockaddr), std::move(socket), 0, TcpBufferSize));
 	}
 
 	std::unique_ptr<ServerBackend> create_tcp_server(const ::sockaddr_storage& sockaddr)

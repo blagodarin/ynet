@@ -59,8 +59,7 @@ namespace ynet
 			NonblockingRecv = 1 << 0,
 		};
 
-		SocketConnection(const ::sockaddr_storage& sockaddr, Socket&& socket, unsigned flags, size_t receive_buffer_size);
-		SocketConnection(uint16_t port, Socket&& socket, unsigned flags, size_t receive_buffer_size);
+		SocketConnection(std::string&& address, Socket&& socket, unsigned flags, size_t receive_buffer_size);
 		~SocketConnection() override = default;
 
 		void close() override;

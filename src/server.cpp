@@ -126,7 +126,7 @@ namespace ynet
 		std::unique_ptr<ServerBackend> backend;
 		for (; ; )
 		{
-			backend = create_local_server(_address._port);
+			backend = create_local_server(_address._port, _sockaddr.ss_family == AF_INET6);
 			if (backend)
 			{
 				std::lock_guard<std::mutex> lock(_mutex);

@@ -18,7 +18,6 @@ namespace ynet
 		virtual ~Connection() = default;
 
 		//! Get the address of the remote party.
-		//! \return Remote party address or empty string if there is no connection.
 		virtual std::string address() const = 0;
 
 		//! Close the connection.
@@ -27,13 +26,6 @@ namespace ynet
 		//!
 		//! \return \c true if the remote party finished sending data.
 		virtual bool exhausted() const = 0;
-
-		//!
-		virtual std::string name() const = 0;
-
-		//! Get the remote port.
-		//! \return Remote port.
-		virtual uint16_t port() const = 0;
 
 		//! Send a message to the remote party synchronously.
 		//! \return \c true if the message was sent.

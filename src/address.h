@@ -7,6 +7,7 @@
 
 namespace ynet
 {
+	std::string make_address(const ::sockaddr_storage& sockaddr);
 	::sockaddr_storage make_sockaddr(const std::string& address, uint16_t port);
 
 	struct Address

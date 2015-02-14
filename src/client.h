@@ -21,9 +21,6 @@ namespace ynet
 		std::string host() const override;
 		uint16_t port() const override;
 
-		void start();
-		void stop();
-
 	private:
 
 		void run();

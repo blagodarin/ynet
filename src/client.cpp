@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "address.h"
 #include "connection.h"
 #include "local.h"
 #include "tcp.h"
