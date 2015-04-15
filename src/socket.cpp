@@ -1,5 +1,6 @@
 #include "socket.h"
 
+#include <cassert>
 #include <cstring>
 
 #include <poll.h>
@@ -20,6 +21,17 @@ namespace ynet
 		, _flags(flags)
 		, _receive_buffer_size(receive_buffer_size)
 	{
+	}
+
+	void SocketConnection::abort()
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		if (!_aborted)
+		{
+			_aborted = true;
+			::shutdown(_socket.get(), _closed ? SHUT_RD : SHUT_RDWR);
+			_closed = true;
+		}
 	}
 
 	void SocketConnection::close()
@@ -48,29 +60,38 @@ namespace ynet
 		std::lock_guard<std::mutex> lock(_mutex);
 		if (_closed)
 			return false;
-		const auto sent_size = ::send(_socket.get(), data, size, MSG_NOSIGNAL);
-		if (sent_size == -1)
+		for (size_t offset = 0; offset < size; )
 		{
-			switch (errno)
+			const auto sent_size = ::send(_socket.get(), static_cast<const uint8_t*>(data) + offset, size - offset, MSG_NOSIGNAL);
+			if (sent_size == -1)
 			{
-			case ECONNRESET:
-				_closed = true;
-				return false;
-			default:
-				throw std::system_error(errno, std::generic_category());
+				switch (errno)
+				{
+				case ECONNRESET:
+				case EPIPE:
+					_closed = true;
+					_aborted = true;
+					return false;
+				default:
+					throw std::system_error(errno, std::generic_category());
+				}
 			}
-		}
-		else if (static_cast<size_t>(sent_size) != size)
-		{
-			// Neither POSIX nor 'man send' explicitly state this can't happen.
-			throw std::logic_error("Blocking 'send' sent " + std::to_string(sent_size) + " bytes of " + std::to_string(size) + " requested");
+			else
+			{
+				// This should mean the connection was broken during a blocking send.
+				// However, there is no guarantee that this has really happened,
+				// so we should try to send the remaining part of the buffer.
+				offset += static_cast<size_t>(sent_size);
+			}
 		}
 		return true;
 	}
 
 	size_t SocketConnection::receive(void* data, size_t size, bool* disconnected)
 	{
-		const auto received_size = ::recv(_socket.get(), data, size, _flags & NonblockingRecv ? MSG_DONTWAIT : 0);
+		assert(size > 0);
+		const bool nonblocking = _flags & NonblockingRecv;
+		const auto received_size = ::recv(_socket.get(), data, size, nonblocking ? MSG_DONTWAIT : 0);
 		if (received_size == -1)
 		{
 			switch (errno)
@@ -79,13 +100,14 @@ namespace ynet
 		#if EWOULDBLOCK != EAGAIN
 			case EWOULDBLOCK:
 		#endif
-				if (!(_flags & NonblockingRecv))
+				if (!nonblocking)
 				{
 					// "...a receive timeout had been set and the timeout expired before data was received." (c) 'man recv'
 					throw std::logic_error("Blocking 'recv' timed out");
 				}
 				return 0;
 			case ECONNRESET:
+			case EPIPE:
 				if (disconnected)
 					*disconnected = true;
 				return 0;
@@ -95,6 +117,7 @@ namespace ynet
 		}
 		else if (received_size == 0)
 		{
+			// The remote peer has performed a graceful shutdown.
 			if (disconnected)
 				*disconnected = true;
 			return 0;

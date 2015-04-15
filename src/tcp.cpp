@@ -15,7 +15,7 @@ namespace ynet
 {
 	const size_t TcpBufferSize = 64 * 1024; // Arbitrary value.
 
-	class TcpServer: public ServerBackend
+	class TcpServer : public ServerBackend
 	{
 	public:
 
@@ -127,7 +127,7 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		return std::unique_ptr<ConnectionImpl>(new SocketConnection(make_address(sockaddr), std::move(socket), 0, TcpBufferSize));
+		return std::make_unique<SocketConnection>(make_address(sockaddr), std::move(socket), 0, TcpBufferSize);
 	}
 
 	std::unique_ptr<ServerBackend> create_tcp_server(const ::sockaddr_storage& sockaddr)
@@ -139,6 +139,6 @@ namespace ynet
 			return {};
 		if (::listen(socket.get(), 16) == -1)
 			return {};
-		return std::unique_ptr<ServerBackend>(new TcpServer(std::move(socket)));
+		return std::make_unique<TcpServer>(std::move(socket));
 	}
 }

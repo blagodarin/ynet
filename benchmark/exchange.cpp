@@ -25,6 +25,11 @@ ExchangeClient::ExchangeClient(uint16_t port, int64_t seconds, size_t bytes, boo
 {
 }
 
+void ExchangeClient::on_failed_to_connect(const ynet::Client&)
+{
+	discard_benchmark();
+}
+
 void ExchangeClient::on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection)
 {
 	start_benchmark();
@@ -47,11 +52,6 @@ void ExchangeClient::on_received(const ynet::Client&, const std::shared_ptr<ynet
 
 void ExchangeClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&)
 {
-}
-
-void ExchangeClient::on_failed_to_connect(const ynet::Client&)
-{
-	discard_benchmark();
 }
 
 ExchangeServer::ExchangeServer(uint16_t port, size_t bytes, bool optimized_loopback)

@@ -9,7 +9,7 @@
 
 namespace ynet
 {
-	class ServerImpl: public Server
+	class ServerImpl : public Server
 	{
 	public:
 

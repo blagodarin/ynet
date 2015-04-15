@@ -18,6 +18,11 @@ private:
 		std::cout << "Started connecting to " << client.host() << " (port " << client.port() << ")" << std::endl;
 	}
 
+	void on_failed_to_connect(const ynet::Client& client) override
+	{
+		std::cout << "Failed to connect to " << client.host() << " (port " << client.port() << ")" << std::endl;
+	}
+
 	void on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection) override
 	{
 		std::cout << "Connected to " << connection->address() << std::endl;
@@ -34,11 +39,6 @@ private:
 	void on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection) override
 	{
 		std::cout << "Disconnected from " << connection->address() << std::endl;
-	}
-
-	void on_failed_to_connect(const ynet::Client& client) override
-	{
-		std::cout << "Failed to connect to " << client.host() << " (port " << client.port() << ")" << std::endl;
 	}
 
 	void on_stopped(const ynet::Client& client) override

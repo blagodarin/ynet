@@ -17,10 +17,16 @@ namespace
 	}
 }
 
-SendClient::SendClient(uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback)
-	: BenchmarkClient(port, seconds, ::client_options(optimized_loopback))
+SendClient::SendClient(uint16_t port, int64_t seconds, size_t bytes, unsigned flags)
+	: BenchmarkClient(port, seconds, ::client_options(flags & BenchmarkLocal))
+	, _flags(flags)
 	, _buffer(bytes)
 {
+}
+
+void SendClient::on_failed_to_connect(const ynet::Client&)
+{
+	discard_benchmark();
 }
 
 void SendClient::on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection)
@@ -41,13 +47,8 @@ void SendClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet
 {
 }
 
-void SendClient::on_failed_to_connect(const ynet::Client&)
-{
-	discard_benchmark();
-}
-
-SendServer::SendServer(uint16_t port, bool optimized_loopback)
-	: BenchmarkServer(port, ::server_options(optimized_loopback))
+SendServer::SendServer(uint16_t port, unsigned flags)
+	: BenchmarkServer(port, ::server_options(flags & BenchmarkLocal))
 {
 }
 

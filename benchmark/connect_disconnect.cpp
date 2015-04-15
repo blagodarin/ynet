@@ -23,6 +23,11 @@ ConnectDisconnectClient::ConnectDisconnectClient(uint16_t port, int64_t seconds,
 {
 }
 
+void ConnectDisconnectClient::on_failed_to_connect(const ynet::Client&)
+{
+	discard_benchmark();
+}
+
 void ConnectDisconnectClient::on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection)
 {
 	connection->close();
@@ -36,11 +41,6 @@ void ConnectDisconnectClient::on_disconnected(const ynet::Client&, const std::sh
 {
 	++_marks;
 	stop_benchmark();
-}
-
-void ConnectDisconnectClient::on_failed_to_connect(const ynet::Client&)
-{
-	discard_benchmark();
 }
 
 ConnectDisconnectServer::ConnectDisconnectServer(uint16_t port, bool optimized_loopback)

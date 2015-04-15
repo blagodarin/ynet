@@ -5,6 +5,11 @@
 
 #include <ynet.h>
 
+enum
+{
+	BenchmarkLocal = 1 << 0,
+};
+
 class BenchmarkClient: public ynet::Client::Callbacks
 {
 public:

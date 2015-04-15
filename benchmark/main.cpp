@@ -163,12 +163,12 @@ BenchmarkResults benchmark_receive(unsigned seconds, size_t bytes, bool optimize
 	return BenchmarkResults(milliseconds, client.marks(), bytes, client.bytes());
 }
 
-BenchmarkResults benchmark_send(unsigned seconds, size_t bytes, bool optimized_loopback)
+BenchmarkResults benchmark_send(unsigned seconds, size_t bytes, unsigned flags)
 {
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking send (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
-	SendServer server(5445, optimized_loopback);
-	SendClient client(5445, seconds, bytes, optimized_loopback);
+	SendServer server(5445, flags);
+	SendClient client(5445, seconds, bytes, flags);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
@@ -196,7 +196,7 @@ int main(int argc, char** argv)
 	{
 		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			results.emplace_back(benchmark_send(10, 1 << i, false));
+			results.emplace_back(benchmark_send(10, 1 << i, 0));
 		print_results(results);
 	}
 	if (options.count("receive"))
@@ -219,8 +219,8 @@ int main(int argc, char** argv)
 		std::vector<BenchmarkResults> local;
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_send(10, 1 << i, false));
-			local.emplace_back(benchmark_send(10, 1 << i, true));
+			base.emplace_back(benchmark_send(10, 1 << i, 0));
+			local.emplace_back(benchmark_send(10, 1 << i, BenchmarkLocal));
 		}
 		print_compared(base, local);
 		base.clear();

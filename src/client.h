@@ -11,7 +11,7 @@ namespace ynet
 {
 	class ConnectionImpl;
 
-	class ClientImpl: public Client
+	class ClientImpl : public Client
 	{
 	public:
 

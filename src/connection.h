@@ -4,7 +4,7 @@
 
 namespace ynet
 {
-	class ConnectionImpl: public Connection
+	class ConnectionImpl : public Connection
 	{
 	public:
 

@@ -17,6 +17,9 @@ namespace ynet
 
 		virtual ~Connection() = default;
 
+		//!
+		virtual void abort() = 0;
+
 		//! Get the address of the remote party.
 		virtual std::string address() const = 0;
 
@@ -49,6 +52,9 @@ namespace ynet
 			virtual void on_started(const Client& client);
 
 			//!
+			virtual void on_failed_to_connect(const Client& client);
+
+			//!
 			virtual void on_connected(const Client& client, const std::shared_ptr<Connection>& connection) = 0;
 
 			//!
@@ -56,9 +62,6 @@ namespace ynet
 
 			//!
 			virtual void on_disconnected(const Client& client, const std::shared_ptr<Connection>& connection) = 0;
-
-			//!
-			virtual void on_failed_to_connect(const Client& client);
 
 			//!
 			virtual void on_stopped(const Client& client);

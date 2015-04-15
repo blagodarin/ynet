@@ -34,10 +34,12 @@ namespace ynet
 			std::lock_guard<std::mutex> lock(_mutex);
 			_stopping = true;
 			if (_connection)
-				_connection->close();
-			// TODO: Consider aborting the connection here instead of gracefully closing it.
-			// The current implementation hangs if the server is constantly sending us data
-			// and doesn't check for the client to become exhausted.
+			{
+				// Aborting a connection instead of gracefully closing it may cause some networking problems,
+				// but prevents a malicious server to make the client wait indefinitely for server side closure.
+				// TODO: Make a configurable decision whether to abort the connection or to close it gracefully.
+				_connection->abort();
+			}
 		}
 		_stop_event.notify_one();
 		_thread.join();
@@ -99,7 +101,9 @@ namespace ynet
 							break;
 						_callbacks.on_received(*this, connection_ptr, receive_buffer.data(), size);
 					}
-					connection_ptr->close();
+					// There is no point in graceful closure at this point
+					// because the connection is either closed or broken here.
+					_connection->abort();
 					{
 						std::lock_guard<std::mutex> lock(_mutex);
 						_connection = nullptr;

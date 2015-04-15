@@ -50,7 +50,7 @@ namespace ynet
 		int _socket = -1;
 	};
 
-	class SocketConnection: public ConnectionImpl
+	class SocketConnection : public ConnectionImpl
 	{
 	public:
 
@@ -62,6 +62,7 @@ namespace ynet
 		SocketConnection(std::string&& address, Socket&& socket, unsigned flags, size_t receive_buffer_size);
 		~SocketConnection() override = default;
 
+		void abort() override;
 		void close() override;
 		bool exhausted() const override;
 		bool send(const void* data, size_t size) override;
@@ -75,5 +76,6 @@ namespace ynet
 		const unsigned _flags;
 		const size_t _receive_buffer_size;
 		bool _closed = false;
+		bool _aborted = false;
 	};
 }
