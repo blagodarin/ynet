@@ -17,7 +17,6 @@ namespace ynet
 		~ServerImpl() override;
 
 		std::string address() const override;
-		std::string name() const override;
 		uint16_t port() const override;
 
 	private:

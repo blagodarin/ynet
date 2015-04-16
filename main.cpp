@@ -64,12 +64,12 @@ private:
 
 	void on_failed_to_start(const ynet::Server& server) override
 	{
-		std::cout << "Server " << server.name() << " failed to start" << std::endl;
+		std::cout << "Server " << server.address() << ":" << server.port() << " failed to start" << std::endl;
 	}
 
 	void on_started(const ynet::Server& server) override
 	{
-		std::cout << "Server " << server.name() << " started" << std::endl;
+		std::cout << "Server " << server.address() << ":" << server.port() << " started" << std::endl;
 	}
 
 	void on_connected(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection) override
@@ -92,7 +92,7 @@ private:
 
 	void on_stopped(const ynet::Server& server) override
 	{
-		std::cout << "Server " << server.name() << " stopped" << std::endl;
+		std::cout << "Server " << server.address() << ":" << server.port() << " stopped" << std::endl;
 	}
 
 private:

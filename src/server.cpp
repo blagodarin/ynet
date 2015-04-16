@@ -51,11 +51,6 @@ namespace ynet
 		return _address._address;
 	}
 
-	std::string ServerImpl::name() const
-	{
-		return _address._name;
-	}
-
 	uint16_t ServerImpl::port() const
 	{
 		return _address._port;

@@ -13,11 +13,10 @@ namespace ynet
 	struct Address
 	{
 		std::string _address;
-		uint16_t _port;
-		std::string _name;
+		uint16_t _port = 0;
 
 		explicit Address(const ::sockaddr_storage& sockaddr);
-		explicit Address(uint16_t port): _port(port), _name(':' + std::to_string(_port)) {}
+		explicit Address(uint16_t port): _port(port) {}
 		Address(const std::string& address, uint16_t port): Address(make_sockaddr(address, port)) {}
 
 		Address() = default;
