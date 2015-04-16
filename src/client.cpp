@@ -20,8 +20,6 @@ namespace ynet
 		, _host(host)
 		, _port(port)
 		, _options(options)
-		, _connection(nullptr)
-		, _stopping(false)
 		, _thread(std::bind(&ClientImpl::run, this))
 	{
 	}

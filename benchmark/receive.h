@@ -4,7 +4,7 @@
 
 #include "benchmark.h"
 
-class ReceiveClient: public BenchmarkClient
+class ReceiveClient : public BenchmarkClient
 {
 public:
 
@@ -26,7 +26,7 @@ private:
 	uint64_t _bytes = 0;
 };
 
-class ReceiveServer: public BenchmarkServer
+class ReceiveServer : public BenchmarkServer
 {
 public:
 

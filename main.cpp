@@ -2,7 +2,7 @@
 
 #include <ynet.h>
 
-class Client: public ynet::Client::Callbacks
+class Client : public ynet::Client::Callbacks
 {
 public:
 
@@ -51,7 +51,7 @@ private:
 	std::unique_ptr<ynet::Client> _client;
 };
 
-class Server: public ynet::Server::Callbacks
+class Server : public ynet::Server::Callbacks
 {
 public:
 

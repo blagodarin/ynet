@@ -10,7 +10,7 @@ enum
 	BenchmarkLocal = 1 << 0,
 };
 
-class BenchmarkClient: public ynet::Client::Callbacks
+class BenchmarkClient : public ynet::Client::Callbacks
 {
 public:
 
@@ -42,7 +42,7 @@ private:
 	bool _discarded = false;
 };
 
-class BenchmarkServer: public ynet::Server::Callbacks
+class BenchmarkServer : public ynet::Server::Callbacks
 {
 public:
 

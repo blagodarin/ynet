@@ -26,10 +26,6 @@ namespace ynet
 		//! Close the connection.
 		virtual void close() = 0;
 
-		//!
-		//! \return \c true if the remote party finished sending data.
-		virtual bool exhausted() const = 0;
-
 		//! Send a message to the remote party synchronously.
 		//! \return \c true if the message was sent.
 		virtual bool send(const void* data, size_t size) = 0;

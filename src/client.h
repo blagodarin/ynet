@@ -32,8 +32,8 @@ namespace ynet
 		const uint16_t _port;
 		const Options _options;
 		std::mutex _mutex;
-		ConnectionImpl* _connection;
-		bool _stopping;
+		ConnectionImpl* _connection = nullptr;
+		bool _stopping = false;
 		std::condition_variable _stop_event;
 		std::thread _thread;
 	};

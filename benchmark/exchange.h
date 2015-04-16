@@ -4,7 +4,7 @@
 
 #include "benchmark.h"
 
-class ExchangeClient: public BenchmarkClient
+class ExchangeClient : public BenchmarkClient
 {
 public:
 
@@ -27,7 +27,7 @@ private:
 	uint64_t _marks = 0;
 };
 
-class ExchangeServer: public BenchmarkServer
+class ExchangeServer : public BenchmarkServer
 {
 public:
 

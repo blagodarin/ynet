@@ -2,7 +2,7 @@
 
 #include "benchmark.h"
 
-class ConnectDisconnectClient: public BenchmarkClient
+class ConnectDisconnectClient : public BenchmarkClient
 {
 public:
 
@@ -22,7 +22,7 @@ private:
 	unsigned _marks = 0;
 };
 
-class ConnectDisconnectServer: public BenchmarkServer
+class ConnectDisconnectServer : public BenchmarkServer
 {
 public:
 

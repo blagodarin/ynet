@@ -103,7 +103,7 @@ namespace ynet
 						connection.second->close();
 					// TODO: Consider aborting the connection here instead of gracefully closing it.
 					// The current implementation hangs if the client is constantly sending us data
-					// and doesn't check for the server to become exhausted.
+					// and doesn't check whether the server has gracefully closed the connection.
 				}
 			}
 
@@ -117,7 +117,7 @@ namespace ynet
 
 	private:
 
-		Socket _socket;
+		const Socket _socket;
 	};
 
 	std::unique_ptr<ConnectionImpl> create_tcp_connection(const ::sockaddr_storage& sockaddr)

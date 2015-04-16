@@ -3,6 +3,8 @@
 #include "client.h"
 #include "server.h"
 
+// TODO: Add Windows port.
+
 namespace ynet
 {
 	void Client::Callbacks::on_started(const Client&)

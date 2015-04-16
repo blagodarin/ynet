@@ -64,7 +64,6 @@ namespace ynet
 
 		void abort() override;
 		void close() override;
-		bool exhausted() const override;
 		bool send(const void* data, size_t size) override;
 		size_t receive(void* data, size_t size, bool* disconnected) override;
 		size_t receive_buffer_size() const override;
@@ -72,7 +71,7 @@ namespace ynet
 	private:
 
 		std::mutex _mutex;
-		Socket _socket;
+		const Socket _socket;
 		const unsigned _flags;
 		const size_t _receive_buffer_size;
 		bool _closed = false;

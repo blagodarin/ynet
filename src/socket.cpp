@@ -44,17 +44,6 @@ namespace ynet
 		}
 	}
 
-	bool SocketConnection::exhausted() const
-	{
-		::pollfd pollfd;
-		::memset(&pollfd, 0, sizeof pollfd);
-		pollfd.fd = _socket.get();
-		pollfd.events = POLLRDHUP;
-		if (::poll(&pollfd, 1, 0) < 0)
-			throw std::system_error(errno, std::generic_category());
-		return pollfd.revents;
-	}
-
 	bool SocketConnection::send(const void* data, size_t size)
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
