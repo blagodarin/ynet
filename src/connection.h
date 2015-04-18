@@ -1,15 +1,21 @@
 #pragma once
 
 #include <ynet.h>
+#include "address.h"
 
 namespace ynet
 {
+	enum class ConnectionSide
+	{
+		Client,
+		Server,
+	};
+
 	class ConnectionImpl : public Connection
 	{
 	public:
 
-		ConnectionImpl() = default;
-		ConnectionImpl(std::string&& address): _address(std::move(address)) {}
+		ConnectionImpl(const ::sockaddr_storage& sockaddr): _address(sockaddr) {}
 		~ConnectionImpl() override = default;
 
 		std::string address() const override;
@@ -19,6 +25,6 @@ namespace ynet
 
 	private:
 
-		const std::string _address = "::1";
+		const Address _address;
 	};
 }

@@ -15,10 +15,10 @@ namespace ynet
 			::close(_socket);
 	}
 
-	SocketConnection::SocketConnection(std::string&& address, Socket&& socket, unsigned flags, size_t receive_buffer_size)
-		: ConnectionImpl(std::move(address))
+	SocketConnection::SocketConnection(const ::sockaddr_storage& sockaddr, Socket&& socket, ConnectionSide side, size_t receive_buffer_size)
+		: ConnectionImpl(sockaddr)
 		, _socket(std::move(socket))
-		, _flags(flags)
+		, _side(side)
 		, _receive_buffer_size(receive_buffer_size)
 	{
 	}
@@ -79,7 +79,7 @@ namespace ynet
 	size_t SocketConnection::receive(void* data, size_t size, bool* disconnected)
 	{
 		assert(size > 0);
-		const bool nonblocking = _flags & NonblockingRecv;
+		const bool nonblocking = _side == ConnectionSide::Server;
 		const auto received_size = ::recv(_socket.get(), data, size, nonblocking ? MSG_DONTWAIT : 0);
 		if (received_size == -1)
 		{

@@ -13,7 +13,9 @@
 
 namespace ynet
 {
-	const size_t TcpBufferSize = 64 * 1024; // Arbitrary value.
+	// All values are arbitrary.
+	const size_t TcpBufferSize = 64 * 1024;
+	const int TcpMaxPendingConnections = 16;
 
 	class TcpServer : public ServerBackend
 	{
@@ -48,8 +50,7 @@ namespace ynet
 					throw std::system_error(errno, std::generic_category());
 				}
 				const auto peer_socket = peer.get();
-				const std::shared_ptr<ConnectionImpl> connection(
-					new SocketConnection(make_address(sockaddr), std::move(peer), SocketConnection::NonblockingRecv, TcpBufferSize));
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(sockaddr, std::move(peer), ConnectionSide::Server, TcpBufferSize));
 				handlers.on_connected(connection);
 				connections.emplace(peer_socket, connection);
 			};
@@ -127,7 +128,7 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		return std::make_unique<SocketConnection>(make_address(sockaddr), std::move(socket), 0, TcpBufferSize);
+		return std::make_unique<SocketConnection>(sockaddr, std::move(socket), ConnectionSide::Client, TcpBufferSize);
 	}
 
 	std::unique_ptr<ServerBackend> create_tcp_server(const ::sockaddr_storage& sockaddr)
@@ -137,7 +138,7 @@ namespace ynet
 			throw std::system_error(errno, std::generic_category());
 		if (::bind(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		if (::listen(socket.get(), 16) == -1)
+		if (::listen(socket.get(), TcpMaxPendingConnections) == -1)
 			return {};
 		return std::make_unique<TcpServer>(std::move(socket));
 	}

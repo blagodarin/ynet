@@ -6,6 +6,8 @@
 #include "local.h"
 #include "tcp.h"
 
+// TODO: Split the "normal" TCP server and the optimized loopback server into two separate classes.
+
 namespace ynet
 {
 	Server::Options::Options()

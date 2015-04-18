@@ -54,12 +54,7 @@ namespace ynet
 	{
 	public:
 
-		enum
-		{
-			NonblockingRecv = 1 << 0,
-		};
-
-		SocketConnection(std::string&& address, Socket&& socket, unsigned flags, size_t receive_buffer_size);
+		SocketConnection(const ::sockaddr_storage& sockaddr, Socket&& socket, ConnectionSide side, size_t receive_buffer_size);
 		~SocketConnection() override = default;
 
 		void abort() override;
@@ -72,7 +67,7 @@ namespace ynet
 
 		std::mutex _mutex;
 		const Socket _socket;
-		const unsigned _flags;
+		const ConnectionSide _side;
 		const size_t _receive_buffer_size;
 		bool _closed = false;
 		bool _aborted = false;

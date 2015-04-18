@@ -91,6 +91,7 @@ namespace ynet
 					}
 					receive_buffer.resize(connection->receive_buffer_size());
 					const std::shared_ptr<Connection> connection_ptr = std::move(connection);
+					// Note that the original connection pointer is no longer valid.
 					_callbacks.on_connected(*this, connection_ptr);
 					for (;;)
 					{

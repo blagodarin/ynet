@@ -14,7 +14,9 @@
 
 namespace ynet
 {
-	const size_t LocalBufferSize = 64 * 1024; // Arbitrary value.
+	// All values are arbitrary.
+	const size_t LocalBufferSize = 64 * 1024;
+	const int LocalMaxPendingConnections = 16;
 
 	namespace
 	{
@@ -40,10 +42,9 @@ namespace ynet
 	{
 	public:
 
-		LocalServer(Socket&& socket, uint16_t port, std::string&& address)
+		LocalServer(Socket&& socket, const ::sockaddr_storage& sockaddr)
 			: _socket(std::move(socket))
-			, _port(port)
-			, _address(std::move(address))
+			, _sockaddr(sockaddr)
 		{
 		}
 
@@ -75,8 +76,7 @@ namespace ynet
 					throw std::system_error(errno, std::generic_category());
 				}
 				const auto peer_socket = peer.get();
-				const std::shared_ptr<ConnectionImpl> connection(
-					new SocketConnection(std::string(_address), std::move(peer), SocketConnection::NonblockingRecv, LocalBufferSize));
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(_sockaddr, std::move(peer), ConnectionSide::Server, LocalBufferSize));
 				handlers.on_connected(connection);
 				connections.emplace(peer_socket, connection);
 				return true;
@@ -146,8 +146,7 @@ namespace ynet
 	private:
 
 		const Socket _socket;
-		const uint16_t _port;
-		const std::string _address;
+		const ::sockaddr_storage _sockaddr;
 	};
 
 	std::unique_ptr<ConnectionImpl> create_local_connection(uint16_t port)
@@ -158,7 +157,7 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
-		return std::unique_ptr<ConnectionImpl>(new SocketConnection("127.0.0.1", std::move(socket), 0, LocalBufferSize));
+		return std::unique_ptr<ConnectionImpl>(new SocketConnection(make_sockaddr("127.0.0.1", port), std::move(socket), ConnectionSide::Client, LocalBufferSize));
 		// TODO: Specify the correct loopback address (IPv4 or IPv6, depending on the server).
 	}
 
@@ -170,8 +169,8 @@ namespace ynet
 			throw std::system_error(errno, std::generic_category());
 		if (::bind(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
-		if (::listen(socket.get(), 16) == -1)
+		if (::listen(socket.get(), LocalMaxPendingConnections) == -1)
 			return {};
-		return std::unique_ptr<ServerBackend>(new LocalServer(std::move(socket), port, ipv6_only ? "::1" : "127.0.0.1"));
+		return std::unique_ptr<ServerBackend>(new LocalServer(std::move(socket), make_sockaddr(ipv6_only ? "::1" : "127.0.0.1", port)));
 	}
 }

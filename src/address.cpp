@@ -47,28 +47,6 @@ namespace ynet
 		}
 	}
 
-	std::string make_address(const ::sockaddr_storage& sockaddr)
-	{
-		if (sockaddr.ss_family == AF_INET)
-		{
-			const auto& sockaddr_in = *reinterpret_cast<const ::sockaddr_in*>(&sockaddr);
-			char buffer[INET_ADDRSTRLEN];
-			if (!::inet_ntop(AF_INET, &sockaddr_in.sin_addr, buffer, INET_ADDRSTRLEN))
-				throw std::system_error(errno, std::generic_category());
-			return buffer;
-		}
-		else if (sockaddr.ss_family == AF_INET6)
-		{
-			const auto& sockaddr_in6 = *reinterpret_cast<const ::sockaddr_in6*>(&sockaddr);
-			char buffer[INET6_ADDRSTRLEN];
-			if (!::inet_ntop(AF_INET6, &sockaddr_in6.sin6_addr, buffer, INET6_ADDRSTRLEN))
-				throw std::system_error(errno, std::generic_category());
-			return buffer;
-		}
-		else
-			throw std::logic_error("Only IPv4/IPv6 addresses are supported");
-	}
-
 	::sockaddr_storage make_sockaddr(const std::string& address, uint16_t port)
 	{
 		::sockaddr_storage sockaddr_storage;
@@ -96,7 +74,6 @@ namespace ynet
 
 	Address::Address(const ::sockaddr_storage& sockaddr)
 	{
-		// TODO: Merge this and make_address.
 		if (sockaddr.ss_family == AF_INET)
 		{
 			const auto& sockaddr_in = *reinterpret_cast<const ::sockaddr_in*>(&sockaddr);

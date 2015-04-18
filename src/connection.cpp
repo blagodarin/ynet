@@ -4,6 +4,6 @@ namespace ynet
 {
 	std::string ConnectionImpl::address() const
 	{
-		return _address;
+		return _address._address;
 	}
 }

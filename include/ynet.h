@@ -39,22 +39,22 @@ namespace ynet
 
 			virtual ~Callbacks() = default;
 
-			//
+			// Called before any network activity starts.
 			virtual void on_started(const Client& client);
 
-			//
+			// Called when the first connection attempt failed.
 			virtual void on_failed_to_connect(const Client& client);
 
-			//
+			// Called when the client has connected to the server.
 			virtual void on_connected(const Client& client, const std::shared_ptr<Connection>& connection) = 0;
 
-			//
+			// Called when the client has received a message.
 			virtual void on_received(const Client& client, const std::shared_ptr<Connection>& connection, const void* data, size_t size) = 0;
 
-			//
+			// Called when the client has been disconnected from the server.
 			virtual void on_disconnected(const Client& client, const std::shared_ptr<Connection>& connection) = 0;
 
-			//
+			// Called after any network activity has finished.
 			virtual void on_stopped(const Client& client);
 		};
 

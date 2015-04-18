@@ -7,7 +7,6 @@
 
 namespace ynet
 {
-	std::string make_address(const ::sockaddr_storage& sockaddr);
 	::sockaddr_storage make_sockaddr(const std::string& address, uint16_t port);
 
 	struct Address
@@ -16,15 +15,12 @@ namespace ynet
 		uint16_t _port = 0;
 
 		explicit Address(const ::sockaddr_storage& sockaddr);
-		explicit Address(uint16_t port): _port(port) {}
-		Address(const std::string& address, uint16_t port): Address(make_sockaddr(address, port)) {}
 
-		Address() = default;
+		Address() = delete;
 		Address(const Address&) = delete;
-		Address(Address&&) = default;
-		~Address() = default;
+		Address(Address&&) = delete;
 		Address& operator=(const Address&) = delete;
-		Address& operator=(Address&&) = default;
+		Address& operator=(Address&&) = delete;
 	};
 
 	struct Resolved
