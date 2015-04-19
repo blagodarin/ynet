@@ -157,7 +157,7 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
-		return std::unique_ptr<ConnectionImpl>(new SocketConnection(make_sockaddr("127.0.0.1", port), std::move(socket), ConnectionSide::Client, LocalBufferSize));
+		return std::unique_ptr<ConnectionImpl>(new SocketConnection(loopback_ipv4(port), std::move(socket), ConnectionSide::Client, LocalBufferSize));
 		// TODO: Specify the correct loopback address (IPv4 or IPv6, depending on the server).
 	}
 
@@ -171,6 +171,6 @@ namespace ynet
 			return {};
 		if (::listen(socket.get(), LocalMaxPendingConnections) == -1)
 			return {};
-		return std::unique_ptr<ServerBackend>(new LocalServer(std::move(socket), make_sockaddr(ipv6_only ? "::1" : "127.0.0.1", port)));
+		return std::unique_ptr<ServerBackend>(new LocalServer(std::move(socket), ipv6_only ? loopback_ipv6(port) : loopback_ipv4(port)));
 	}
 }

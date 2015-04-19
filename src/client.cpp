@@ -10,8 +10,7 @@
 namespace ynet
 {
 	Client::Options::Options()
-		: reconnect_timeout(1000)
-		, optimized_loopback(true)
+		: optimized_loopback(true)
 	{
 	}
 
@@ -78,11 +77,11 @@ namespace ynet
 		std::vector<uint8_t> receive_buffer;
 		for (bool initial = true; ; )
 		{
+			int reconnect_timeout = -1;
 			{
 				auto connection = resolve_and_connect();
 				if (connection)
 				{
-					initial = false;
 					{
 						std::lock_guard<std::mutex> lock(_mutex);
 						if (_stopping)
@@ -107,18 +106,18 @@ namespace ynet
 						std::lock_guard<std::mutex> lock(_mutex);
 						_connection = nullptr;
 					}
-					_callbacks.on_disconnected(*this, connection_ptr);
+					_callbacks.on_disconnected(*this, connection_ptr, reconnect_timeout);
 				}
-				else if (initial)
-				{
-					initial = false;
-					_callbacks.on_failed_to_connect(*this);
-				}
+				else
+					_callbacks.on_failed_to_connect(*this, initial, reconnect_timeout);
+				initial = false;
 			}
+			if (reconnect_timeout < 0)
+				break;
 			std::unique_lock<std::mutex> lock(_mutex);
-			if (_options.reconnect_timeout > 0)
+			if (reconnect_timeout > 0)
 			{
-				if (_stop_event.wait_for(lock, std::chrono::milliseconds(_options.reconnect_timeout), [this]() { return _stopping; }))
+				if (_stop_event.wait_for(lock, std::chrono::milliseconds(reconnect_timeout), [this]() { return _stopping; }))
 					break;
 			}
 			else if (_stopping)

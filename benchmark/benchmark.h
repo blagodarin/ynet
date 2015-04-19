@@ -54,7 +54,7 @@ protected:
 
 private:
 
-	void on_failed_to_start(const ynet::Server&) final;
+	void on_failed_to_start(const ynet::Server&, bool, int&) final;
 	void on_started(const ynet::Server&) final;
 	void on_stopped(const ynet::Server&) final;
 

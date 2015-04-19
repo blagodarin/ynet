@@ -47,36 +47,55 @@ namespace ynet
 		}
 	}
 
-	::sockaddr_storage make_sockaddr(const std::string& address, uint16_t port)
+	::sockaddr_storage any_ipv4(uint16_t port)
 	{
 		::sockaddr_storage sockaddr_storage;
 		::memset(&sockaddr_storage, 0, sizeof sockaddr_storage);
+		auto& sockaddr_in = reinterpret_cast<::sockaddr_in&>(sockaddr_storage);
+		sockaddr_in.sin_family = AF_INET;
+		sockaddr_in.sin_addr.s_addr = ::htonl(INADDR_ANY);
+		sockaddr_in.sin_port = ::htons(port);
+		return sockaddr_storage;
+	}
 
-		auto& sockaddr_in = *reinterpret_cast<::sockaddr_in*>(&sockaddr_storage);
-		if (::inet_pton(AF_INET, address.c_str(), &sockaddr_in.sin_addr) == 1)
-		{
-			sockaddr_in.sin_family = AF_INET;
-			sockaddr_in.sin_port = ::htons(port);
-			return sockaddr_storage;
-		}
+	::sockaddr_storage any_ipv6(uint16_t port)
+	{
+		::sockaddr_storage sockaddr_storage;
+		::memset(&sockaddr_storage, 0, sizeof sockaddr_storage);
+		auto& sockaddr_in6 = reinterpret_cast<::sockaddr_in6&>(sockaddr_storage);
+		sockaddr_in6.sin6_family = AF_INET6;
+		sockaddr_in6.sin6_addr = IN6ADDR_ANY_INIT;
+		sockaddr_in6.sin6_port = ::htons(port);
+		return sockaddr_storage;
+	}
 
-		auto& sockaddr_in6 = *reinterpret_cast<::sockaddr_in6*>(&sockaddr_storage);
-		if (::inet_pton(AF_INET6, address.c_str(), &sockaddr_in6.sin6_addr) == 1)
-		{
-			sockaddr_in6.sin6_family = AF_INET6;
-			sockaddr_in6.sin6_port = ::htons(port);
-			return sockaddr_storage;
-		}
+	::sockaddr_storage loopback_ipv4(uint16_t port)
+	{
+		::sockaddr_storage sockaddr_storage;
+		::memset(&sockaddr_storage, 0, sizeof sockaddr_storage);
+		auto& sockaddr_in = reinterpret_cast<::sockaddr_in&>(sockaddr_storage);
+		sockaddr_in.sin_family = AF_INET;
+		sockaddr_in.sin_addr.s_addr = ::htonl(INADDR_LOOPBACK);
+		sockaddr_in.sin_port = ::htons(port);
+		return sockaddr_storage;
+	}
 
-		throw std::logic_error("Only IPv4/IPv6 addresses are supported");
-		// It may also be that the system doesn't support IPv6 (or both IPv4 and IPv6).
+	::sockaddr_storage loopback_ipv6(uint16_t port)
+	{
+		::sockaddr_storage sockaddr_storage;
+		::memset(&sockaddr_storage, 0, sizeof sockaddr_storage);
+		auto& sockaddr_in6 = reinterpret_cast<::sockaddr_in6&>(sockaddr_storage);
+		sockaddr_in6.sin6_family = AF_INET6;
+		sockaddr_in6.sin6_addr = IN6ADDR_LOOPBACK_INIT;
+		sockaddr_in6.sin6_port = ::htons(port);
+		return sockaddr_storage;
 	}
 
 	Address::Address(const ::sockaddr_storage& sockaddr)
 	{
 		if (sockaddr.ss_family == AF_INET)
 		{
-			const auto& sockaddr_in = *reinterpret_cast<const ::sockaddr_in*>(&sockaddr);
+			const auto& sockaddr_in = reinterpret_cast<const ::sockaddr_in&>(sockaddr);
 			char buffer[INET_ADDRSTRLEN];
 			if (!::inet_ntop(AF_INET, &sockaddr_in.sin_addr, buffer, INET_ADDRSTRLEN))
 				throw std::system_error(errno, std::generic_category());
@@ -85,7 +104,7 @@ namespace ynet
 		}
 		else if (sockaddr.ss_family == AF_INET6)
 		{
-			const auto& sockaddr_in6 = *reinterpret_cast<const ::sockaddr_in6*>(&sockaddr);
+			const auto& sockaddr_in6 = reinterpret_cast<const ::sockaddr_in6&>(sockaddr);
 			char buffer[INET6_ADDRSTRLEN];
 			if (!::inet_ntop(AF_INET6, &sockaddr_in6.sin6_addr, buffer, INET6_ADDRSTRLEN))
 				throw std::system_error(errno, std::generic_category());
@@ -127,14 +146,14 @@ namespace ynet
 			::sockaddr_storage sockaddr;
 			if (addrinfo->ai_family == AF_INET)
 			{
-				::sockaddr_in& sockaddr_in = *reinterpret_cast<::sockaddr_in*>(&sockaddr);
+				::sockaddr_in& sockaddr_in = reinterpret_cast<::sockaddr_in&>(sockaddr);
 				::memcpy(&sockaddr_in, addrinfo->ai_addr, sizeof sockaddr_in);
 				sockaddr_in.sin_port = ::htons(port);
 				resolved.local = is_local(sockaddr_in);
 			}
 			else if (addrinfo->ai_family != AF_INET6)
 			{
-				::sockaddr_in6& sockaddr_in6 = *reinterpret_cast<::sockaddr_in6*>(&sockaddr);
+				::sockaddr_in6& sockaddr_in6 = reinterpret_cast<::sockaddr_in6&>(sockaddr);
 				::memcpy(&sockaddr_in6, addrinfo->ai_addr, sizeof sockaddr_in6);
 				sockaddr_in6.sin6_port = ::htons(port);
 				resolved.local = is_local(sockaddr_in6);

@@ -42,9 +42,6 @@ namespace ynet
 			// Called before any network activity starts.
 			virtual void on_started(const Client& client);
 
-			// Called when the first connection attempt failed.
-			virtual void on_failed_to_connect(const Client& client);
-
 			// Called when the client has connected to the server.
 			virtual void on_connected(const Client& client, const std::shared_ptr<Connection>& connection) = 0;
 
@@ -52,7 +49,13 @@ namespace ynet
 			virtual void on_received(const Client& client, const std::shared_ptr<Connection>& connection, const void* data, size_t size) = 0;
 
 			// Called when the client has been disconnected from the server.
-			virtual void on_disconnected(const Client& client, const std::shared_ptr<Connection>& connection) = 0;
+			// 'reconnect_timeout' should be set to a nonnegative value for the client to reconnect in the specified number of milliseconds.
+			virtual void on_disconnected(const Client& client, const std::shared_ptr<Connection>& connection, int& reconnect_timeout) = 0;
+
+			// Called when a connection attempt fails.
+			// 'initial' is true for the first connection attempt of the client.
+			// 'reconnect_timeout' should be set to a nonnegative value for the client to reconnect in the specified number of milliseconds.
+			virtual void on_failed_to_connect(const Client& client, bool initial, int& reconnect_timeout) = 0;
 
 			// Called after any network activity has finished.
 			virtual void on_stopped(const Client& client);
@@ -61,7 +64,6 @@ namespace ynet
 		//
 		struct Options
 		{
-			unsigned reconnect_timeout; //
 			bool optimized_loopback; //
 
 			Options();
@@ -92,7 +94,7 @@ namespace ynet
 			virtual ~Callbacks() = default;
 
 			//
-			virtual void on_failed_to_start(const Server& server);
+			virtual void on_failed_to_start(const Server& server, bool initial, int& restart_timeout) = 0;
 
 			//
 			virtual void on_started(const Server& server);

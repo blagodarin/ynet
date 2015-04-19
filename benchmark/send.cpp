@@ -24,11 +24,6 @@ SendClient::SendClient(uint16_t port, int64_t seconds, size_t bytes, unsigned fl
 {
 }
 
-void SendClient::on_failed_to_connect(const ynet::Client&)
-{
-	discard_benchmark();
-}
-
 void SendClient::on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection)
 {
 	start_benchmark();
@@ -43,8 +38,13 @@ void SendClient::on_received(const ynet::Client&, const std::shared_ptr<ynet::Co
 {
 }
 
-void SendClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&)
+void SendClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&, int&)
 {
+}
+
+void SendClient::on_failed_to_connect(const ynet::Client&, bool, int&)
+{
+	discard_benchmark();
 }
 
 SendServer::SendServer(uint16_t port, unsigned flags)

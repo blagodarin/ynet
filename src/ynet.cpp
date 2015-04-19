@@ -11,10 +11,6 @@ namespace ynet
 	{
 	}
 
-	void Client::Callbacks::on_failed_to_connect(const Client&)
-	{
-	}
-
 	void Client::Callbacks::on_stopped(const Client&)
 	{
 	}
@@ -22,10 +18,6 @@ namespace ynet
 	std::unique_ptr<Client> Client::create(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options)
 	{
 		return std::make_unique<ClientImpl>(callbacks, host, port, options);
-	}
-
-	void Server::Callbacks::on_failed_to_start(const Server&)
-	{
 	}
 
 	void Server::Callbacks::on_started(const Server&)

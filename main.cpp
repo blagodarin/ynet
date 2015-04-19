@@ -18,11 +18,6 @@ private:
 		std::cout << "Started connecting to " << client.host() << " (port " << client.port() << ")" << std::endl;
 	}
 
-	void on_failed_to_connect(const ynet::Client& client) override
-	{
-		std::cout << "Failed to connect to " << client.host() << " (port " << client.port() << ")" << std::endl;
-	}
-
 	void on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection) override
 	{
 		std::cout << "Connected to " << connection->address() << std::endl;
@@ -36,9 +31,16 @@ private:
 		::dump(static_cast<const char*>(data), size);
 	}
 
-	void on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection) override
+	void on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection, int&) override
 	{
 		std::cout << "Disconnected from " << connection->address() << std::endl;
+	}
+
+	void on_failed_to_connect(const ynet::Client& client, bool initial, int& reconnect_timeout) override
+	{
+		if (initial)
+			std::cout << "Failed to connect to " << client.host() << " (port " << client.port() << ")" << std::endl;
+		reconnect_timeout = 1000;
 	}
 
 	void on_stopped(const ynet::Client& client) override
@@ -62,9 +64,11 @@ public:
 
 private:
 
-	void on_failed_to_start(const ynet::Server& server) override
+	void on_failed_to_start(const ynet::Server& server, bool initial, int& restart_timeout) override
 	{
-		std::cout << "Server " << server.address() << ":" << server.port() << " failed to start" << std::endl;
+		if (initial)
+			std::cout << "Server " << server.address() << ":" << server.port() << " failed to start" << std::endl;
+		restart_timeout = 1000;
 	}
 
 	void on_started(const ynet::Server& server) override

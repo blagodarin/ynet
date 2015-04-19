@@ -23,11 +23,6 @@ ReceiveClient::ReceiveClient(uint16_t port, int64_t seconds, size_t bytes, bool 
 {
 }
 
-void ReceiveClient::on_failed_to_connect(const ynet::Client&)
-{
-	discard_benchmark();
-}
-
 void ReceiveClient::on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection)
 {
 	start_benchmark();
@@ -43,8 +38,13 @@ void ReceiveClient::on_received(const ynet::Client&, const std::shared_ptr<ynet:
 	_bytes += size;
 }
 
-void ReceiveClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&)
+void ReceiveClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&, int&)
 {
+}
+
+void ReceiveClient::on_failed_to_connect(const ynet::Client&, bool, int&)
+{
+	discard_benchmark();
 }
 
 ReceiveServer::ReceiveServer(uint16_t port, size_t bytes, bool optimized_loopback)

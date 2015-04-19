@@ -82,8 +82,9 @@ void BenchmarkServer::stop()
 	_server.reset();
 }
 
-void BenchmarkServer::on_failed_to_start(const ynet::Server&)
+void BenchmarkServer::on_failed_to_start(const ynet::Server&, bool, int& reconnect_timeout)
 {
+	reconnect_timeout = 1000;
 }
 
 void BenchmarkServer::on_started(const ynet::Server&)

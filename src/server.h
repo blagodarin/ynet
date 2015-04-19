@@ -29,7 +29,6 @@ namespace ynet
 		Callbacks& _callbacks;
 		ServerHandlers _handlers;
 		const Options _options;
-		const int _relisten_timeout;
 		const ::sockaddr_storage _sockaddr;
 		const Address _address;
 		std::mutex _mutex;

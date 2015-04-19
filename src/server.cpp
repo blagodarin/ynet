@@ -19,8 +19,7 @@ namespace ynet
 		: _callbacks(callbacks)
 		, _handlers(*this, _callbacks)
 		, _options(options)
-		, _relisten_timeout(1000)
-		, _sockaddr(make_sockaddr("0.0.0.0", port)) // TODO: Change to :: for an IPv6 server.
+		, _sockaddr(any_ipv4(port))
 		, _address(_sockaddr)
 		, _thread(std::bind(&ServerImpl::run, this))
 	{
@@ -70,15 +69,15 @@ namespace ynet
 				_backend = backend.get();
 				break;
 			}
-			if (initial)
-			{
-				initial = false;
-				_callbacks.on_failed_to_start(*this);
-			}
+			int restart_timeout = -1;
+			_callbacks.on_failed_to_start(*this, initial, restart_timeout);
+			initial = false;
+			if (restart_timeout < 0)
+				return;
 			std::unique_lock<std::mutex> lock(_mutex);
-			if (_relisten_timeout > 0)
+			if (restart_timeout > 0)
 			{
-				if (_stop_event.wait_for(lock, std::chrono::milliseconds(_relisten_timeout), [this]() { return _stopping; }))
+				if (_stop_event.wait_for(lock, std::chrono::milliseconds(restart_timeout), [this]() { return _stopping; }))
 					return;
 			}
 			else if (_stopping)
@@ -120,29 +119,20 @@ namespace ynet
 
 	void ServerImpl::run_local()
 	{
-		std::unique_ptr<ServerBackend> backend;
-		for (; ; )
+		const auto backend = create_local_server(_address._port, _sockaddr.ss_family == AF_INET6);
+		if (backend)
 		{
-			backend = create_local_server(_address._port, _sockaddr.ss_family == AF_INET6);
-			if (backend)
-			{
-				std::lock_guard<std::mutex> lock(_mutex);
-				_local_backend = backend.get();
-				break;
-			}
-			std::unique_lock<std::mutex> lock(_mutex);
-			if (_relisten_timeout > 0)
-			{
-				if (_stop_event.wait_for(lock, std::chrono::milliseconds(_relisten_timeout), [this]() { return _stopping; }))
-					break;
-			}
-			else if (_stopping)
-				break;
+			std::lock_guard<std::mutex> lock(_mutex);
+			_local_backend = backend.get();
 		}
-
 		_local_server_started.notify_one();
 		if (!backend)
+		{
+			// A local server is only started after a network one has.
+			// Startup failure means there are external reasons preventing the corresponding local server to work.
+			// Treating such failure as fatal is the simplest option, we already have a network server anyway.
 			return;
+		}
 
 		{
 			std::unique_lock<std::mutex> lock(_mutex);

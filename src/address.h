@@ -7,7 +7,10 @@
 
 namespace ynet
 {
-	::sockaddr_storage make_sockaddr(const std::string& address, uint16_t port);
+	::sockaddr_storage any_ipv4(uint16_t port);
+	::sockaddr_storage any_ipv6(uint16_t port);
+	::sockaddr_storage loopback_ipv4(uint16_t port);
+	::sockaddr_storage loopback_ipv6(uint16_t port);
 
 	struct Address
 	{
