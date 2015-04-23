@@ -2,9 +2,9 @@
 
 #include <cassert>
 
-#include "address.h"
 #include "connection.h"
 #include "local.h"
+#include "resolve.h"
 #include "tcp.h"
 
 namespace ynet
@@ -41,16 +41,6 @@ namespace ynet
 		_stop_event.notify_one();
 		_thread.join();
 		assert(!_connection);
-	}
-
-	std::string ClientImpl::host() const
-	{
-		return _host;
-	}
-
-	uint16_t ClientImpl::port() const
-	{
-		return _port;
 	}
 
 	void ClientImpl::run()

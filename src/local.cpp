@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <poll.h>
-#include <sys/socket.h>
 #include <sys/un.h>
 
 #include "backend.h"
@@ -42,9 +41,9 @@ namespace ynet
 	{
 	public:
 
-		LocalServer(Socket&& socket, const ::sockaddr_storage& sockaddr)
-			: _socket(std::move(socket))
-			, _sockaddr(sockaddr)
+		LocalServer(const Address& address, Socket&& socket)
+			: _address(address)
+			, _socket(std::move(socket))
 		{
 		}
 
@@ -76,7 +75,7 @@ namespace ynet
 					throw std::system_error(errno, std::generic_category());
 				}
 				const auto peer_socket = peer.get();
-				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(_sockaddr, std::move(peer), ConnectionSide::Server, LocalBufferSize));
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(_address, std::move(peer), ConnectionSide::Server, LocalBufferSize));
 				handlers.on_connected(connection);
 				connections.emplace(peer_socket, connection);
 				return true;
@@ -145,8 +144,8 @@ namespace ynet
 
 	private:
 
+		const Address _address;
 		const Socket _socket;
-		const ::sockaddr_storage _sockaddr;
 	};
 
 	std::unique_ptr<ConnectionImpl> create_local_connection(uint16_t port)
@@ -157,13 +156,13 @@ namespace ynet
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
-		return std::unique_ptr<ConnectionImpl>(new SocketConnection(loopback_ipv4(port), std::move(socket), ConnectionSide::Client, LocalBufferSize));
+		return std::make_unique<SocketConnection>(Address(Address::Family::IPv4, Address::Special::Loopback, port), std::move(socket), ConnectionSide::Client, LocalBufferSize);
 		// TODO: Specify the correct loopback address (IPv4 or IPv6, depending on the server).
 	}
 
-	std::unique_ptr<ServerBackend> create_local_server(uint16_t port, bool ipv6_only)
+	std::unique_ptr<ServerBackend> create_local_server(const Address& address)
 	{
-		const auto& sockaddr = make_local_sockaddr(port);
+		const auto& sockaddr = make_local_sockaddr(address.port());
 		Socket socket = ::socket(sockaddr.first.sun_family, SOCK_STREAM, 0);
 		if (!socket)
 			throw std::system_error(errno, std::generic_category());
@@ -171,6 +170,6 @@ namespace ynet
 			return {};
 		if (::listen(socket.get(), LocalMaxPendingConnections) == -1)
 			return {};
-		return std::unique_ptr<ServerBackend>(new LocalServer(std::move(socket), ipv6_only ? loopback_ipv6(port) : loopback_ipv4(port)));
+		return std::make_unique<LocalServer>(Address(address.family(), Address::Special::Loopback, address.port()), std::move(socket));
 	}
 }

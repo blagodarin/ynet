@@ -3,8 +3,6 @@
 #include <cassert>
 #include <cstring>
 
-#include <poll.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 namespace ynet
@@ -15,8 +13,8 @@ namespace ynet
 			::close(_socket);
 	}
 
-	SocketConnection::SocketConnection(const ::sockaddr_storage& sockaddr, Socket&& socket, ConnectionSide side, size_t receive_buffer_size)
-		: ConnectionImpl(sockaddr)
+	SocketConnection::SocketConnection(const Address& address, Socket&& socket, ConnectionSide side, size_t receive_buffer_size)
+		: ConnectionImpl(address)
 		, _socket(std::move(socket))
 		, _side(side)
 		, _receive_buffer_size(receive_buffer_size)
@@ -113,10 +111,5 @@ namespace ynet
 		}
 		else
 			return received_size;
-	}
-
-	size_t SocketConnection::receive_buffer_size() const
-	{
-		return _receive_buffer_size;
 	}
 }

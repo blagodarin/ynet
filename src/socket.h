@@ -54,14 +54,14 @@ namespace ynet
 	{
 	public:
 
-		SocketConnection(const ::sockaddr_storage& sockaddr, Socket&& socket, ConnectionSide side, size_t receive_buffer_size);
+		SocketConnection(const Address& address, Socket&& socket, ConnectionSide side, size_t receive_buffer_size);
 		~SocketConnection() override = default;
 
 		void abort() override;
 		void close() override;
 		bool send(const void* data, size_t size) override;
 		size_t receive(void* data, size_t size, bool* disconnected) override;
-		size_t receive_buffer_size() const override;
+		size_t receive_buffer_size() const override { return _receive_buffer_size; }
 
 	private:
 

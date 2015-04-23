@@ -19,8 +19,7 @@ namespace ynet
 		: _callbacks(callbacks)
 		, _handlers(*this, _callbacks)
 		, _options(options)
-		, _sockaddr(any_ipv4(port))
-		, _address(_sockaddr)
+		, _address(Address::Family::IPv4, Address::Special::Any, port)
 		, _thread(std::bind(&ServerImpl::run, this))
 	{
 	}
@@ -47,22 +46,12 @@ namespace ynet
 		_thread.join();
 	}
 
-	std::string ServerImpl::address() const
-	{
-		return _address._address;
-	}
-
-	uint16_t ServerImpl::port() const
-	{
-		return _address._port;
-	}
-
 	void ServerImpl::run()
 	{
 		std::unique_ptr<ServerBackend> backend;
 		for (bool initial = true; ; )
 		{
-			backend = create_tcp_server(_sockaddr);
+			backend = create_tcp_server(_address);
 			if (backend)
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
@@ -119,7 +108,7 @@ namespace ynet
 
 	void ServerImpl::run_local()
 	{
-		const auto backend = create_local_server(_address._port, _sockaddr.ss_family == AF_INET6);
+		const auto backend = create_local_server(_address);
 		if (backend)
 		{
 			std::lock_guard<std::mutex> lock(_mutex);

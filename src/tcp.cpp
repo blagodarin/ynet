@@ -3,11 +3,11 @@
 #include <cassert>
 #include <cstring>
 #include <map>
+#include <vector>
 
 #include <netinet/in.h>
 #include <poll.h>
 
-#include "address.h"
 #include "backend.h"
 #include "socket.h"
 
@@ -50,7 +50,7 @@ namespace ynet
 					throw std::system_error(errno, std::generic_category());
 				}
 				const auto peer_socket = peer.get();
-				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(sockaddr, std::move(peer), ConnectionSide::Server, TcpBufferSize));
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(Address(sockaddr), std::move(peer), ConnectionSide::Server, TcpBufferSize));
 				handlers.on_connected(connection);
 				connections.emplace(peer_socket, connection);
 			};
@@ -121,18 +121,20 @@ namespace ynet
 		const Socket _socket;
 	};
 
-	std::unique_ptr<ConnectionImpl> create_tcp_connection(const ::sockaddr_storage& sockaddr)
+	std::unique_ptr<ConnectionImpl> create_tcp_connection(const Address& address)
 	{
+		const auto& sockaddr = address.sockaddr();
 		Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (!socket)
 			return {};
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		return std::make_unique<SocketConnection>(sockaddr, std::move(socket), ConnectionSide::Client, TcpBufferSize);
+		return std::make_unique<SocketConnection>(address, std::move(socket), ConnectionSide::Client, TcpBufferSize);
 	}
 
-	std::unique_ptr<ServerBackend> create_tcp_server(const ::sockaddr_storage& sockaddr)
+	std::unique_ptr<ServerBackend> create_tcp_server(const Address& address)
 	{
+		const auto& sockaddr = address.sockaddr();
 		Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (!socket)
 			throw std::system_error(errno, std::generic_category());

@@ -3,7 +3,6 @@
 #include <condition_variable>
 #include <thread>
 
-#include <ynet.h>
 #include "address.h"
 #include "backend.h"
 
@@ -16,8 +15,8 @@ namespace ynet
 		ServerImpl(Callbacks& callbacks, uint16_t port, const Options& options);
 		~ServerImpl() override;
 
-		std::string address() const override;
-		uint16_t port() const override;
+		std::string address() const override { return _address.ip(); }
+		uint16_t port() const override { return _address.port(); }
 
 	private:
 
@@ -29,7 +28,6 @@ namespace ynet
 		Callbacks& _callbacks;
 		ServerHandlers _handlers;
 		const Options _options;
-		const ::sockaddr_storage _sockaddr;
 		const Address _address;
 		std::mutex _mutex;
 		ServerBackend* _backend = nullptr;

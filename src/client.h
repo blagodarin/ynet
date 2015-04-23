@@ -5,8 +5,6 @@
 
 #include <ynet.h>
 
-struct sockaddr_storage;
-
 namespace ynet
 {
 	class ConnectionImpl;
@@ -18,8 +16,8 @@ namespace ynet
 		ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options);
 		~ClientImpl() override;
 
-		std::string host() const override;
-		uint16_t port() const override;
+		std::string host() const override { return _host; }
+		uint16_t port() const override { return _port; }
 
 	private:
 
