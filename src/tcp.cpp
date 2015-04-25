@@ -24,7 +24,7 @@ namespace ynet
 		TcpServer(Socket&& socket): _socket(std::move(socket)) {}
 		~TcpServer() override = default;
 
-		void poll(ServerHandlers& handlers) override
+		void run(ServerHandlers& handlers) override
 		{
 			const auto make_pollfd = [](int socket)
 			{
@@ -50,7 +50,7 @@ namespace ynet
 					throw std::system_error(errno, std::generic_category());
 				}
 				const auto peer_socket = peer.get();
-				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(Address(sockaddr), std::move(peer), ConnectionSide::Server, TcpBufferSize));
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(Address(sockaddr), std::move(peer), SocketConnection::Side::Server, TcpBufferSize));
 				handlers.on_connected(connection);
 				connections.emplace(peer_socket, connection);
 			};
@@ -126,10 +126,10 @@ namespace ynet
 		const auto& sockaddr = address.sockaddr();
 		Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (!socket)
-			return {};
+			throw std::system_error(errno, std::generic_category());
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
-		return std::make_unique<SocketConnection>(address, std::move(socket), ConnectionSide::Client, TcpBufferSize);
+		return std::make_unique<SocketConnection>(address, std::move(socket), SocketConnection::Side::Client, TcpBufferSize);
 	}
 
 	std::unique_ptr<ServerBackend> create_tcp_server(const Address& address)

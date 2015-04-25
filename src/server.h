@@ -12,7 +12,7 @@ namespace ynet
 	{
 	public:
 
-		ServerImpl(Callbacks& callbacks, uint16_t port, const Options& options);
+		ServerImpl(Callbacks&, uint16_t port, const Options& options);
 		~ServerImpl() override;
 
 		std::string address() const override { return _address.ip(); }

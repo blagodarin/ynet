@@ -13,7 +13,7 @@ namespace ynet
 	{
 	public:
 
-		ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options);
+		ClientImpl(Callbacks&, const std::string& host, uint16_t port, const Options& options);
 		~ClientImpl() override;
 
 		std::string host() const override { return _host; }

@@ -5,12 +5,6 @@
 
 namespace ynet
 {
-	enum class ConnectionSide
-	{
-		Client,
-		Server,
-	};
-
 	class ConnectionImpl : public Connection
 	{
 	public:

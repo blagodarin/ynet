@@ -33,13 +33,6 @@ namespace ynet
 			return _socket;
 		}
 
-		int release()
-		{
-			const auto socket = _socket;
-			_socket = -1;
-			return socket;
-		}
-
 		Socket() = default;
 		Socket(const Socket&) = delete;
 		Socket& operator=(const Socket&) = delete;
@@ -54,7 +47,13 @@ namespace ynet
 	{
 	public:
 
-		SocketConnection(const Address& address, Socket&& socket, ConnectionSide side, size_t receive_buffer_size);
+		enum class Side
+		{
+			Client,
+			Server,
+		};
+
+		SocketConnection(const Address& address, Socket&& socket, Side side, size_t receive_buffer_size);
 		~SocketConnection() override = default;
 
 		void abort() override;
@@ -67,7 +66,7 @@ namespace ynet
 
 		std::mutex _mutex;
 		const Socket _socket;
-		const ConnectionSide _side;
+		const Side _side;
 		const size_t _receive_buffer_size;
 		bool _closed = false;
 		bool _aborted = false;

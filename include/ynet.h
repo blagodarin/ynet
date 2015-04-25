@@ -40,25 +40,28 @@ namespace ynet
 			virtual ~Callbacks() = default;
 
 			// Called before any network activity starts.
-			virtual void on_started(const Client& client);
+			// The default implementation does nothing.
+			virtual void on_started();
 
 			// Called when the client has connected to the server.
-			virtual void on_connected(const Client& client, const std::shared_ptr<Connection>& connection) = 0;
+			virtual void on_connected(const std::shared_ptr<Connection>&) = 0;
 
 			// Called when the client has received a message.
-			virtual void on_received(const Client& client, const std::shared_ptr<Connection>& connection, const void* data, size_t size) = 0;
+			virtual void on_received(const std::shared_ptr<Connection>&, const void* data, size_t size) = 0;
 
 			// Called when the client has been disconnected from the server.
-			// 'reconnect_timeout' should be set to a nonnegative value for the client to reconnect in the specified number of milliseconds.
-			virtual void on_disconnected(const Client& client, const std::shared_ptr<Connection>& connection, int& reconnect_timeout) = 0;
+			// 'reconnect_timeout' should be set to a nonnegative value
+			// to reconnect in the specified number of milliseconds.
+			virtual void on_disconnected(const std::shared_ptr<Connection>&, int& reconnect_timeout) = 0;
 
 			// Called when a connection attempt fails.
-			// 'initial' is true for the first connection attempt of the client.
-			// 'reconnect_timeout' should be set to a nonnegative value for the client to reconnect in the specified number of milliseconds.
-			virtual void on_failed_to_connect(const Client& client, bool initial, int& reconnect_timeout) = 0;
+			// 'reconnect_timeout' should be set to a nonnegative value
+			// to reconnect in the specified number of milliseconds.
+			virtual void on_failed_to_connect(int& reconnect_timeout) = 0;
 
-			// Called after any network activity has finished.
-			virtual void on_stopped(const Client& client);
+			// Called when any network activity has finished.
+			// The default implementation does nothing.
+			virtual void on_stopped();
 		};
 
 		//
@@ -70,7 +73,7 @@ namespace ynet
 		};
 
 		//
-		static std::unique_ptr<Client> create(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options = {});
+		static std::unique_ptr<Client> create(Callbacks&, const std::string& host, uint16_t port, const Options& options = {});
 
 		virtual ~Client() = default;
 
@@ -94,22 +97,23 @@ namespace ynet
 			virtual ~Callbacks() = default;
 
 			//
-			virtual void on_failed_to_start(const Server& server, bool initial, int& restart_timeout) = 0;
+			virtual void on_failed_to_start(int& restart_timeout) = 0;
 
-			//
-			virtual void on_started(const Server& server);
+			// Called when the server has started, but before any client connects.
+			virtual void on_started();
 
-			//
-			virtual void on_connected(const Server& server, const std::shared_ptr<Connection>& connection) = 0;
+			// Called when a client has connected to the server.
+			virtual void on_connected(const std::shared_ptr<Connection>&) = 0;
 
-			//
-			virtual void on_received(const Server& server, const std::shared_ptr<Connection>& connection, const void* data, size_t size) = 0;
+			// Called when the server has received a message from a client.
+			virtual void on_received(const std::shared_ptr<Connection>&, const void* data, size_t size) = 0;
 
-			//
-			virtual void on_disconnected(const Server& server, const std::shared_ptr<Connection>& connection) = 0;
+			// Called when a client has been disconnected from the server.
+			virtual void on_disconnected(const std::shared_ptr<Connection>&) = 0;
 
-			//
-			virtual void on_stopped(const Server& server);
+			// Called when any network activity has finished.
+			// The default implementation does nothing.
+			virtual void on_stopped();
 		};
 
 		//
@@ -121,7 +125,7 @@ namespace ynet
 		};
 
 		//
-		static std::unique_ptr<Server> create(Callbacks& callbacks, uint16_t port, const Options& options = Options());
+		static std::unique_ptr<Server> create(Callbacks&, uint16_t port, const Options& options = Options());
 
 		virtual ~Server() = default;
 

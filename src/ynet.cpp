@@ -7,11 +7,11 @@
 
 namespace ynet
 {
-	void Client::Callbacks::on_started(const Client&)
+	void Client::Callbacks::on_started()
 	{
 	}
 
-	void Client::Callbacks::on_stopped(const Client&)
+	void Client::Callbacks::on_stopped()
 	{
 	}
 
@@ -20,11 +20,11 @@ namespace ynet
 		return std::make_unique<ClientImpl>(callbacks, host, port, options);
 	}
 
-	void Server::Callbacks::on_started(const Server&)
+	void Server::Callbacks::on_started()
 	{
 	}
 
-	void Server::Callbacks::on_stopped(const Server&)
+	void Server::Callbacks::on_stopped()
 	{
 	}
 

@@ -23,12 +23,12 @@ ReceiveClient::ReceiveClient(uint16_t port, int64_t seconds, size_t bytes, bool 
 {
 }
 
-void ReceiveClient::on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection)
+void ReceiveClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)
 {
 	start_benchmark();
 }
 
-void ReceiveClient::on_received(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection, const void*, size_t size)
+void ReceiveClient::on_received(const std::shared_ptr<ynet::Connection>& connection, const void*, size_t size)
 {
 	if (stop_benchmark())
 	{
@@ -38,11 +38,11 @@ void ReceiveClient::on_received(const ynet::Client&, const std::shared_ptr<ynet:
 	_bytes += size;
 }
 
-void ReceiveClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&, int&)
+void ReceiveClient::on_disconnected(const std::shared_ptr<ynet::Connection>&, int&)
 {
 }
 
-void ReceiveClient::on_failed_to_connect(const ynet::Client&, bool, int&)
+void ReceiveClient::on_failed_to_connect(int&)
 {
 	discard_benchmark();
 }
@@ -53,15 +53,15 @@ ReceiveServer::ReceiveServer(uint16_t port, size_t bytes, bool optimized_loopbac
 {
 }
 
-void ReceiveServer::on_connected(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection)
+void ReceiveServer::on_connected(const std::shared_ptr<ynet::Connection>& connection)
 {
 	while (connection->send(_buffer.data(), _buffer.size()));
 }
 
-void ReceiveServer::on_received(const ynet::Server&, const std::shared_ptr<ynet::Connection>&, const void*, size_t)
+void ReceiveServer::on_received(const std::shared_ptr<ynet::Connection>&, const void*, size_t)
 {
 }
 
-void ReceiveServer::on_disconnected(const ynet::Server&, const std::shared_ptr<ynet::Connection>&)
+void ReceiveServer::on_disconnected(const std::shared_ptr<ynet::Connection>&)
 {
 }

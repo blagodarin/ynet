@@ -15,12 +15,12 @@ namespace ynet
 	{
 	}
 
-	ServerImpl::ServerImpl(Server::Callbacks& callbacks, uint16_t port, const Options& options)
+	ServerImpl::ServerImpl(Callbacks& callbacks, uint16_t port, const Options& options)
 		: _callbacks(callbacks)
-		, _handlers(*this, _callbacks)
+		, _handlers(_callbacks)
 		, _options(options)
 		, _address(Address::Family::IPv4, Address::Special::Any, port)
-		, _thread(std::bind(&ServerImpl::run, this))
+		, _thread([this]() { run(); })
 	{
 	}
 
@@ -49,18 +49,19 @@ namespace ynet
 	void ServerImpl::run()
 	{
 		std::unique_ptr<ServerBackend> backend;
-		for (bool initial = true; ; )
+		for (; ; )
 		{
 			backend = create_tcp_server(_address);
 			if (backend)
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
+				if (_stopping)
+					return;
 				_backend = backend.get();
 				break;
 			}
 			int restart_timeout = -1;
-			_callbacks.on_failed_to_start(*this, initial, restart_timeout);
-			initial = false;
+			_callbacks.on_failed_to_start(restart_timeout);
 			if (restart_timeout < 0)
 				return;
 			std::unique_lock<std::mutex> lock(_mutex);
@@ -87,7 +88,7 @@ namespace ynet
 			}
 		}
 
-		_callbacks.on_started(*this);
+		_callbacks.on_started();
 
 		if (_options.optimized_loopback)
 		{
@@ -98,12 +99,12 @@ namespace ynet
 			_start_local_polling_condition.notify_one();
 		}
 
-		backend->poll(_handlers);
+		backend->run(_handlers);
 
 		if (_options.optimized_loopback)
 			local_thread.join();
 
-		_callbacks.on_stopped(*this);
+		_callbacks.on_stopped();
 	}
 
 	void ServerImpl::run_local()
@@ -130,6 +131,6 @@ namespace ynet
 				return;
 		}
 
-		backend->poll(_handlers);
+		backend->run(_handlers);
 	}
 }

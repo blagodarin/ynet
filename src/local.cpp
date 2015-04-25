@@ -49,7 +49,7 @@ namespace ynet
 
 		~LocalServer() override = default;
 
-		void poll(ServerHandlers& handlers) override
+		void run(ServerHandlers& handlers) override
 		{
 			const auto make_pollfd = [](int socket)
 			{
@@ -75,7 +75,7 @@ namespace ynet
 					throw std::system_error(errno, std::generic_category());
 				}
 				const auto peer_socket = peer.get();
-				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(_address, std::move(peer), ConnectionSide::Server, LocalBufferSize));
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(_address, std::move(peer), SocketConnection::Side::Server, LocalBufferSize));
 				handlers.on_connected(connection);
 				connections.emplace(peer_socket, connection);
 				return true;
@@ -153,10 +153,10 @@ namespace ynet
 		const auto& sockaddr = make_local_sockaddr(port);
 		Socket socket = ::socket(sockaddr.first.sun_family, SOCK_STREAM, 0);
 		if (!socket)
-			return {};
+			throw std::system_error(errno, std::generic_category());
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
-		return std::make_unique<SocketConnection>(Address(Address::Family::IPv4, Address::Special::Loopback, port), std::move(socket), ConnectionSide::Client, LocalBufferSize);
+		return std::make_unique<SocketConnection>(Address(Address::Family::IPv4, Address::Special::Loopback, port), std::move(socket), SocketConnection::Side::Client, LocalBufferSize);
 		// TODO: Specify the correct loopback address (IPv4 or IPv6, depending on the server).
 	}
 

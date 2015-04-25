@@ -19,7 +19,7 @@ namespace ynet
 		, _host(host)
 		, _port(port)
 		, _options(options)
-		, _thread(std::bind(&ClientImpl::run, this))
+		, _thread([this]() { run(); })
 	{
 	}
 
@@ -63,9 +63,9 @@ namespace ynet
 			return {};
 		};
 
-		_callbacks.on_started(*this);
+		_callbacks.on_started();
 		std::vector<uint8_t> receive_buffer;
-		for (bool initial = true; ; )
+		for (; ; )
 		{
 			int reconnect_timeout = -1;
 			{
@@ -81,13 +81,13 @@ namespace ynet
 					receive_buffer.resize(connection->receive_buffer_size());
 					const std::shared_ptr<Connection> connection_ptr = std::move(connection);
 					// Note that the original connection pointer is no longer valid.
-					_callbacks.on_connected(*this, connection_ptr);
+					_callbacks.on_connected(connection_ptr);
 					for (;;)
 					{
 						const size_t size = _connection->receive(receive_buffer.data(), receive_buffer.size(), nullptr);
 						if (size == 0)
 							break;
-						_callbacks.on_received(*this, connection_ptr, receive_buffer.data(), size);
+						_callbacks.on_received(connection_ptr, receive_buffer.data(), size);
 					}
 					// There is no point in graceful closure at this point
 					// because the connection is either closed or broken here.
@@ -96,11 +96,10 @@ namespace ynet
 						std::lock_guard<std::mutex> lock(_mutex);
 						_connection = nullptr;
 					}
-					_callbacks.on_disconnected(*this, connection_ptr, reconnect_timeout);
+					_callbacks.on_disconnected(connection_ptr, reconnect_timeout);
 				}
 				else
-					_callbacks.on_failed_to_connect(*this, initial, reconnect_timeout);
-				initial = false;
+					_callbacks.on_failed_to_connect(reconnect_timeout);
 			}
 			if (reconnect_timeout < 0)
 				break;
@@ -113,6 +112,6 @@ namespace ynet
 			else if (_stopping)
 				break;
 		}
-		_callbacks.on_stopped(*this);
+		_callbacks.on_stopped();
 	}
 }

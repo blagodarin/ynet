@@ -61,7 +61,7 @@ bool BenchmarkClient::stop_benchmark()
 	return true;
 }
 
-void BenchmarkClient::on_started(const ynet::Client&)
+void BenchmarkClient::on_started()
 {
 	start_benchmark();
 }
@@ -82,12 +82,12 @@ void BenchmarkServer::stop()
 	_server.reset();
 }
 
-void BenchmarkServer::on_failed_to_start(const ynet::Server&, bool, int& reconnect_timeout)
+void BenchmarkServer::on_failed_to_start(int& reconnect_timeout)
 {
 	reconnect_timeout = 1000;
 }
 
-void BenchmarkServer::on_started(const ynet::Server&)
+void BenchmarkServer::on_started()
 {
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
@@ -96,6 +96,6 @@ void BenchmarkServer::on_started(const ynet::Server&)
 	_server_started_condition.notify_one();
 }
 
-void BenchmarkServer::on_stopped(const ynet::Server&)
+void BenchmarkServer::on_stopped()
 {
 }

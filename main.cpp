@@ -6,50 +6,53 @@ class Client : public ynet::Client::Callbacks
 {
 public:
 
-	Client(const std::string& host, uint16_t port)
-		: _client(ynet::Client::create(*this, host, port))
-	{
-	}
+	Client(const std::string& host, uint16_t port): _client(ynet::Client::create(*this, host, port)) {}
 
 private:
 
-	void on_started(const ynet::Client& client) override
+	void on_started() override
 	{
-		std::cout << "Started connecting to " << client.host() << " (port " << client.port() << ")" << std::endl;
+		std::cout << "Client started" << std::endl;
 	}
 
-	void on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection) override
+	void on_connected(const std::shared_ptr<ynet::Connection>& connection) override
 	{
+		_initial_connect = false;
 		std::cout << "Connected to " << connection->address() << std::endl;
 		const std::string request = "GET / HTTP/1.1\r\n\r\n";
 		connection->send(request.data(), request.size());
 	}
 
-	void on_received(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size) override
+	void on_received(const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size) override
 	{
 		std::cout << "Received " << size << " bytes from " << connection->address() << std::endl;
 		::dump(static_cast<const char*>(data), size);
 	}
 
-	void on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection, int&) override
+	void on_disconnected(const std::shared_ptr<ynet::Connection>& connection, int& reconnect_timeout) override
 	{
 		std::cout << "Disconnected from " << connection->address() << std::endl;
-	}
-
-	void on_failed_to_connect(const ynet::Client& client, bool initial, int& reconnect_timeout) override
-	{
-		if (initial)
-			std::cout << "Failed to connect to " << client.host() << " (port " << client.port() << ")" << std::endl;
 		reconnect_timeout = 1000;
 	}
 
-	void on_stopped(const ynet::Client& client) override
+	void on_failed_to_connect(int& reconnect_timeout) override
 	{
-		std::cout << "Stopped connecting to " << client.host() << " (port " << client.port() << ")" << std::endl;
+		if (_initial_connect)
+		{
+			std::cout << "Failed to connect to " << _client->host() << " (port " << _client->port() << ")" << std::endl;
+			_initial_connect = false;
+		}
+		reconnect_timeout = 1000;
+	}
+
+	void on_stopped() override
+	{
+		std::cout << "Client stopped" << std::endl;
 	}
 
 private:
 
+	bool _initial_connect = true;
 	std::unique_ptr<ynet::Client> _client;
 };
 
@@ -57,31 +60,31 @@ class Server : public ynet::Server::Callbacks
 {
 public:
 
-	Server(uint16_t port)
-		: _server(ynet::Server::create(*this, port))
-	{
-	}
+	Server(uint16_t port): _server(ynet::Server::create(*this, port)) {}
 
 private:
 
-	void on_failed_to_start(const ynet::Server& server, bool initial, int& restart_timeout) override
+	void on_failed_to_start(int& restart_timeout) override
 	{
-		if (initial)
-			std::cout << "Server " << server.address() << ":" << server.port() << " failed to start" << std::endl;
+		if (_initial_startup)
+		{
+			std::cout << "Server failed to start" << std::endl;
+			_initial_startup = false;
+		}
 		restart_timeout = 1000;
 	}
 
-	void on_started(const ynet::Server& server) override
+	void on_started() override
 	{
-		std::cout << "Server " << server.address() << ":" << server.port() << " started" << std::endl;
+		std::cout << "Server started" << std::endl;
 	}
 
-	void on_connected(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection) override
+	void on_connected(const std::shared_ptr<ynet::Connection>& connection) override
 	{
 		std::cout << "Client " << connection->address() << " connected" << std::endl;
 	}
 
-	void on_received(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size) override
+	void on_received(const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size) override
 	{
 		std::cout << "Client " << connection->address() << " sent " << size << " bytes" << std::endl;
 		::dump(static_cast<const char*>(data), size);
@@ -89,18 +92,19 @@ private:
 		connection->send(reply.data(), reply.size());
 	}
 
-	void on_disconnected(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection) override
+	void on_disconnected(const std::shared_ptr<ynet::Connection>& connection) override
 	{
 		std::cout << "Client " << connection->address() << " disconnected" << std::endl;
 	}
 
-	void on_stopped(const ynet::Server& server) override
+	void on_stopped() override
 	{
-		std::cout << "Server " << server.address() << ":" << server.port() << " stopped" << std::endl;
+		std::cout << "Server stopped" << std::endl;
 	}
 
 private:
 
+	bool _initial_startup = true;
 	std::unique_ptr<ynet::Server> _server;
 };
 

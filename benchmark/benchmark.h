@@ -26,7 +26,7 @@ protected:
 
 private:
 
-	void on_started(const ynet::Client&) final;
+	void on_started() final;
 
 private:
 
@@ -54,9 +54,9 @@ protected:
 
 private:
 
-	void on_failed_to_start(const ynet::Server&, bool, int&) final;
-	void on_started(const ynet::Server&) final;
-	void on_stopped(const ynet::Server&) final;
+	void on_failed_to_start(int&) final;
+	void on_started() final;
+	void on_stopped() final;
 
 private:
 

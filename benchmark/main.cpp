@@ -180,6 +180,7 @@ int main(int argc, char** argv)
 	std::unordered_set<std::string> options;
 	for (int i = 1; i < argc; ++i)
 		options.emplace(argv[i]);
+	const int test_seconds = options.count("quick") ? 1 : 10;
 	if (options.count("connect"))
 	{
 		std::vector<BenchmarkResults> results;
@@ -189,28 +190,28 @@ int main(int argc, char** argv)
 	if (options.count("connect-local"))
 	{
 		std::vector<BenchmarkResults> results;
-		results.emplace_back(benchmark_connect_disconnect(10, true));
+		results.emplace_back(benchmark_connect_disconnect(test_seconds, true));
 		print_results(results);
 	}
 	if (options.count("send"))
 	{
 		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			results.emplace_back(benchmark_send(10, 1 << i, 0));
+			results.emplace_back(benchmark_send(test_seconds, 1 << i, 0));
 		print_results(results);
 	}
 	if (options.count("receive"))
 	{
 		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			results.emplace_back(benchmark_receive(10, 1 << i, false));
+			results.emplace_back(benchmark_receive(test_seconds, 1 << i, false));
 		print_results(results);
 	}
 	if (options.count("exchange"))
 	{
 		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			results.emplace_back(benchmark_exchange(10, 1 << i, false));
+			results.emplace_back(benchmark_exchange(test_seconds, 1 << i, false));
 		print_results(results);
 	}
 	if (options.count("local"))
@@ -219,24 +220,24 @@ int main(int argc, char** argv)
 		std::vector<BenchmarkResults> local;
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_send(10, 1 << i, 0));
-			local.emplace_back(benchmark_send(10, 1 << i, BenchmarkLocal));
+			base.emplace_back(benchmark_send(test_seconds, 1 << i, 0));
+			local.emplace_back(benchmark_send(test_seconds, 1 << i, BenchmarkLocal));
 		}
 		print_compared(base, local);
 		base.clear();
 		local.clear();
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_receive(10, 1 << i, false));
-			local.emplace_back(benchmark_receive(10, 1 << i, true));
+			base.emplace_back(benchmark_receive(test_seconds, 1 << i, false));
+			local.emplace_back(benchmark_receive(test_seconds, 1 << i, true));
 		}
 		print_compared(base, local);
 		base.clear();
 		local.clear();
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_exchange(10, 1 << i, false));
-			local.emplace_back(benchmark_exchange(10, 1 << i, true));
+			base.emplace_back(benchmark_exchange(test_seconds, 1 << i, false));
+			local.emplace_back(benchmark_exchange(test_seconds, 1 << i, true));
 		}
 		print_compared(base, local);
 	}

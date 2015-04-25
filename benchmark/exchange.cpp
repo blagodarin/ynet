@@ -25,13 +25,13 @@ ExchangeClient::ExchangeClient(uint16_t port, int64_t seconds, size_t bytes, boo
 {
 }
 
-void ExchangeClient::on_connected(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection)
+void ExchangeClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)
 {
 	start_benchmark();
 	connection->send(_buffer.data(), _buffer.size());
 }
 
-void ExchangeClient::on_received(const ynet::Client&, const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size)
+void ExchangeClient::on_received(const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size)
 {
 	if (size > _buffer.size() - _offset)
 		throw std::logic_error("Unexpected received data size");
@@ -45,11 +45,11 @@ void ExchangeClient::on_received(const ynet::Client&, const std::shared_ptr<ynet
 	connection->send(_buffer.data(), _buffer.size());
 }
 
-void ExchangeClient::on_disconnected(const ynet::Client&, const std::shared_ptr<ynet::Connection>&, int&)
+void ExchangeClient::on_disconnected(const std::shared_ptr<ynet::Connection>&, int&)
 {
 }
 
-void ExchangeClient::on_failed_to_connect(const ynet::Client&, bool, int&)
+void ExchangeClient::on_failed_to_connect(int&)
 {
 	discard_benchmark();
 }
@@ -60,11 +60,11 @@ ExchangeServer::ExchangeServer(uint16_t port, size_t bytes, bool optimized_loopb
 {
 }
 
-void ExchangeServer::on_connected(const ynet::Server&, const std::shared_ptr<ynet::Connection>&)
+void ExchangeServer::on_connected(const std::shared_ptr<ynet::Connection>&)
 {
 }
 
-void ExchangeServer::on_received(const ynet::Server&, const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size)
+void ExchangeServer::on_received(const std::shared_ptr<ynet::Connection>& connection, const void* data, size_t size)
 {
 	if (size > _buffer.size() - _offset)
 		throw std::logic_error("Unexpected received data size");
@@ -75,6 +75,6 @@ void ExchangeServer::on_received(const ynet::Server&, const std::shared_ptr<ynet
 	connection->send(_buffer.data(), _buffer.size());
 }
 
-void ExchangeServer::on_disconnected(const ynet::Server&, const std::shared_ptr<ynet::Connection>&)
+void ExchangeServer::on_disconnected(const std::shared_ptr<ynet::Connection>&)
 {
 }
