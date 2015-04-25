@@ -4,7 +4,7 @@
 
 namespace ynet
 {
-	void ServerHandlers::on_received(const std::shared_ptr<Connection>& connection, void* buffer, size_t buffer_size, bool& disconnected)
+	void ServerBackend::Callbacks::on_received(const std::shared_ptr<Connection>& connection, void* buffer, size_t buffer_size, bool& disconnected)
 	{
 		for (;;)
 		{

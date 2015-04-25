@@ -26,7 +26,7 @@ namespace ynet
 	private:
 
 		Callbacks& _callbacks;
-		ServerHandlers _handlers;
+		ServerBackend::Callbacks _backend_callbacks;
 		const Options _options;
 		const Address _address;
 		std::mutex _mutex;

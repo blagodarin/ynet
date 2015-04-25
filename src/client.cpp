@@ -34,7 +34,8 @@ namespace ynet
 			{
 				// Aborting a connection instead of gracefully closing it may cause some networking problems,
 				// but prevents a malicious server to make the client wait indefinitely for server side closure.
-				// TODO: Make a configurable decision whether to abort the connection or to close it gracefully.
+				// TODO: Make a configurable decision whether to abort the connection or to close it gracefully,
+				// or some graceful shutdown timeout.
 				_connection->abort();
 			}
 		}

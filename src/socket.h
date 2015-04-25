@@ -10,37 +10,21 @@ namespace ynet
 	{
 	public:
 
-		Socket(int socket)
-			: _socket(socket)
-		{
-		}
-
-		Socket(Socket&& socket)
-			: _socket(socket._socket)
-		{
-			socket._socket = -1;
-		}
-
+		explicit Socket(int socket);
+		Socket(int domain, int type, int protocol);
+		Socket(Socket&& socket);
 		~Socket();
 
-		explicit operator bool() const
-		{
-			return _socket != -1;
-		}
+		int get() const { return _socket; }
 
-		int get() const
-		{
-			return _socket;
-		}
-
-		Socket() = default;
+		Socket() = delete;
 		Socket(const Socket&) = delete;
 		Socket& operator=(const Socket&) = delete;
 		Socket& operator=(Socket&&) = delete;
 
 	private:
 
-		int _socket = -1;
+		int _socket;
 	};
 
 	class SocketConnection : public ConnectionImpl

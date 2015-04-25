@@ -17,7 +17,7 @@ namespace ynet
 
 	ServerImpl::ServerImpl(Callbacks& callbacks, uint16_t port, const Options& options)
 		: _callbacks(callbacks)
-		, _handlers(_callbacks)
+		, _backend_callbacks(_callbacks)
 		, _options(options)
 		, _address(Address::Family::IPv4, Address::Special::Any, port)
 		, _thread([this]() { run(); })
@@ -99,7 +99,7 @@ namespace ynet
 			_start_local_polling_condition.notify_one();
 		}
 
-		backend->run(_handlers);
+		backend->run(_backend_callbacks);
 
 		if (_options.optimized_loopback)
 			local_thread.join();
@@ -131,6 +131,6 @@ namespace ynet
 				return;
 		}
 
-		backend->run(_handlers);
+		backend->run(_backend_callbacks);
 	}
 }

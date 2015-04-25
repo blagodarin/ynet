@@ -7,6 +7,25 @@
 
 namespace ynet
 {
+	Socket::Socket(int socket)
+		: _socket(socket)
+	{
+		assert(_socket != -1);
+	}
+
+	Socket::Socket(int domain, int type, int protocol)
+		: _socket(::socket(domain, type, protocol))
+	{
+		if (_socket == -1)
+			throw std::system_error(errno, std::generic_category());
+	}
+
+	Socket::Socket(Socket&& socket)
+		: _socket(socket._socket)
+	{
+		socket._socket = -1;
+	}
+
 	Socket::~Socket()
 	{
 		if (_socket != -1)

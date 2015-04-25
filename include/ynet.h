@@ -51,12 +51,12 @@ namespace ynet
 
 			// Called when the client has been disconnected from the server.
 			// 'reconnect_timeout' should be set to a nonnegative value
-			// to reconnect in the specified number of milliseconds.
+			// to try to reconnect in the specified number of milliseconds.
 			virtual void on_disconnected(const std::shared_ptr<Connection>&, int& reconnect_timeout) = 0;
 
 			// Called when a connection attempt fails.
 			// 'reconnect_timeout' should be set to a nonnegative value
-			// to reconnect in the specified number of milliseconds.
+			// to try to reconnect in the specified number of milliseconds.
 			virtual void on_failed_to_connect(int& reconnect_timeout) = 0;
 
 			// Called when any network activity has finished.
@@ -72,7 +72,7 @@ namespace ynet
 			Options();
 		};
 
-		//
+		// Creates a client.
 		static std::unique_ptr<Client> create(Callbacks&, const std::string& host, uint16_t port, const Options& options = {});
 
 		virtual ~Client() = default;
@@ -89,17 +89,21 @@ namespace ynet
 	{
 	public:
 
-		// All callbacks are called from the server thread.
+		// All callbacks are called from a server thread.
+		// There may be multiple server threads, but all callbacks for any
+		// single connection are guaranteed to be called from the same thread.
 		class Callbacks
 		{
 		public:
 
 			virtual ~Callbacks() = default;
 
-			//
+			// Called if the server has failed to start.
+			// 'restart_timeout' should be set to a nonnegative value
+			// to try to restart in the specified number of milliseconds.
 			virtual void on_failed_to_start(int& restart_timeout) = 0;
 
-			// Called when the server has started, but before any client connects.
+			// Called when the server has started, but before any clients connect.
 			virtual void on_started();
 
 			// Called when a client has connected to the server.
@@ -124,7 +128,7 @@ namespace ynet
 			Options();
 		};
 
-		//
+		// Creates a server.
 		static std::unique_ptr<Server> create(Callbacks&, uint16_t port, const Options& options = Options());
 
 		virtual ~Server() = default;

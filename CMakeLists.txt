@@ -8,11 +8,11 @@ add_library(ynet
 	src/backend.cpp
 	src/client.cpp
 	src/local.cpp
+	src/main.cpp
 	src/resolve.cpp
 	src/server.cpp
 	src/socket.cpp
-	src/tcp.cpp
-	src/ynet.cpp)
+	src/tcp.cpp)
 
 add_executable(ynet-test
 	main.cpp)

@@ -24,7 +24,7 @@ namespace ynet
 		TcpServer(Socket&& socket): _socket(std::move(socket)) {}
 		~TcpServer() override = default;
 
-		void run(ServerHandlers& handlers) override
+		void run(ServerBackend::Callbacks& callbacks) override
 		{
 			const auto make_pollfd = [](int socket)
 			{
@@ -38,21 +38,20 @@ namespace ynet
 			std::map<int, std::shared_ptr<ConnectionImpl>> connections;
 			std::vector<uint8_t> receive_buffer(TcpBufferSize);
 
-			const auto accept = [&connections, &handlers](int socket)
+			const auto accept = [&connections, &callbacks](int socket)
 			{
 				::sockaddr_storage sockaddr;
 				auto sockaddr_size = sizeof sockaddr;
-				Socket peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
-				if (!peer)
+				const auto peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
+				if (peer == -1)
 				{
 					if (errno == ECONNABORTED)
 						return;
 					throw std::system_error(errno, std::generic_category());
 				}
-				const auto peer_socket = peer.get();
-				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(Address(sockaddr), std::move(peer), SocketConnection::Side::Server, TcpBufferSize));
-				handlers.on_connected(connection);
-				connections.emplace(peer_socket, connection);
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(Address(sockaddr), Socket(peer), SocketConnection::Side::Server, TcpBufferSize));
+				callbacks.on_connected(connection);
+				connections.emplace(peer, connection);
 			};
 
 			for (bool stopping = false; !stopping || !connections.empty(); )
@@ -88,10 +87,10 @@ namespace ynet
 					assert(i != connections.end());
 					bool disconnected = pollfd.revents & (POLLHUP | POLLERR | POLLNVAL);
 					if (pollfd.revents & POLLIN)
-						handlers.on_received(i->second, receive_buffer.data(), receive_buffer.size(), disconnected);
+						callbacks.on_received(i->second, receive_buffer.data(), receive_buffer.size(), disconnected);
 					if (disconnected)
 					{
-						handlers.on_disconnected(i->second);
+						callbacks.on_disconnected(i->second);
 						connections.erase(i);
 					}
 				}
@@ -124,9 +123,7 @@ namespace ynet
 	std::unique_ptr<ConnectionImpl> create_tcp_connection(const Address& address)
 	{
 		const auto& sockaddr = address.sockaddr();
-		Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
-		if (!socket)
-			throw std::system_error(errno, std::generic_category());
+		Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
 		return std::make_unique<SocketConnection>(address, std::move(socket), SocketConnection::Side::Client, TcpBufferSize);
@@ -135,9 +132,7 @@ namespace ynet
 	std::unique_ptr<ServerBackend> create_tcp_server(const Address& address)
 	{
 		const auto& sockaddr = address.sockaddr();
-		Socket socket = ::socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
-		if (!socket)
-			throw std::system_error(errno, std::generic_category());
+		Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (::bind(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
 		if (::listen(socket.get(), TcpMaxPendingConnections) == -1)
