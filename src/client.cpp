@@ -4,7 +4,7 @@
 
 #include "connection.h"
 #include "local.h"
-#include "resolve.h"
+#include "resolution.h"
 #include "tcp.h"
 
 namespace ynet
@@ -28,15 +28,21 @@ namespace ynet
 		assert(_thread.joinable());
 		assert(_thread.get_id() != std::this_thread::get_id());
 		{
-			std::lock_guard<std::mutex> lock(_mutex);
+			std::unique_lock<std::mutex> lock(_mutex);
 			_stopping = true;
 			if (_connection)
 			{
-				// Aborting a connection instead of gracefully closing it may cause some networking problems,
-				// but prevents a malicious server to make the client wait indefinitely for server side closure.
-				// TODO: Make a configurable decision whether to abort the connection or to close it gracefully,
-				// or some graceful shutdown timeout.
-				_connection->abort();
+				if (_disconnect_timeout == 0)
+					_connection->abort();
+				else
+				{
+					_connection->close();
+					if (_disconnect_timeout > 0)
+					{
+						if (!_disconnect_event.wait_for(lock, std::chrono::milliseconds(_disconnect_timeout), [this]() { return !_connection; }))
+							_connection->abort();
+					}
+				}
 			}
 		}
 		_stop_event.notify_one();
@@ -48,14 +54,14 @@ namespace ynet
 	{
 		const auto resolve_and_connect = [this]() -> std::unique_ptr<ConnectionImpl>
 		{
-			const auto& resolved = resolve(_host, _port);
-			if (_options.optimized_loopback && resolved.local)
+			const Resolution resolution(_host, _port);
+			if (_options.optimized_loopback && resolution.local())
 			{
 				auto connection = create_local_connection(_port);
 				if (connection)
 					return connection;
 			}
-			for (const auto& address : resolved.addresses)
+			for (const auto& address : resolution)
 			{
 				auto connection = create_tcp_connection(address);
 				if (connection)
@@ -98,6 +104,7 @@ namespace ynet
 						_connection = nullptr;
 					}
 					_callbacks.on_disconnected(connection_ptr, reconnect_timeout);
+					_disconnect_event.notify_one();
 				}
 				else
 					_callbacks.on_failed_to_connect(reconnect_timeout);

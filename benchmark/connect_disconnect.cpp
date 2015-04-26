@@ -20,6 +20,7 @@ namespace
 ConnectDisconnectClient::ConnectDisconnectClient(uint16_t port, int64_t seconds, bool optimized_loopback)
 	: BenchmarkClient(port, seconds, client_options(optimized_loopback))
 {
+	set_disconnect_timeout(-1);
 }
 
 void ConnectDisconnectClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)

@@ -21,6 +21,7 @@ ReceiveClient::ReceiveClient(uint16_t port, int64_t seconds, size_t bytes, bool 
 	: BenchmarkClient(port, seconds, ::client_options(optimized_loopback))
 	, _bytes_per_mark(bytes)
 {
+	// The server sends us data as long as it can, so infinite wait for graceful disconnect is not an option.
 }
 
 void ReceiveClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)

@@ -1,4 +1,4 @@
-#include "resolve.h"
+#include "resolution.h"
 
 #include <cstring>
 
@@ -40,14 +40,14 @@ namespace ynet
 				if (ip.u16[5] == 0 && ip.u16[6] == 0 && ip.u8[14] == 0 && ip.u8[15] == 1)
 					return true; // ::1
 				if (ip.u16[5] == 0xFFFF && ip.u8[12] == 127)
-					return true; // ::ffff::127.0.0.0/104
+					return true; // ::ffff:127.0.0.0/104
 			}
 			// TODO: Check other addresses of the local machine.
 			return false;
 		}
 	}
 
-	Resolved resolve(const std::string& host, uint16_t port)
+	Resolution::Resolution(const std::string& host, uint16_t port)
 	{
 		struct Resolver
 		{
@@ -58,7 +58,7 @@ namespace ynet
 				::addrinfo hints;
 				::memset(&hints, 0, sizeof hints);
 				hints.ai_family = AF_UNSPEC;
-				// The soket type field isn't required for address resolution,
+				// The socket type field isn't required for address resolution,
 				// but prevents getaddrinfo returning multiple addresses with different socket types.
 				hints.ai_socktype = SOCK_STREAM;
 				::getaddrinfo(host.c_str(), nullptr, &hints, &addrinfos);
@@ -72,7 +72,6 @@ namespace ynet
 		};
 
 		const Resolver resolver(host);
-		Resolved resolved;
 		for (const auto* addrinfo = resolver.addrinfos; addrinfo; addrinfo = addrinfo->ai_next)
 		{
 			::sockaddr_storage sockaddr;
@@ -81,19 +80,20 @@ namespace ynet
 				::sockaddr_in& sockaddr_in = reinterpret_cast<::sockaddr_in&>(sockaddr);
 				::memcpy(&sockaddr_in, addrinfo->ai_addr, sizeof sockaddr_in);
 				sockaddr_in.sin_port = ::htons(port);
-				resolved.local = is_local(sockaddr_in);
+				if (!_local && is_local(sockaddr_in))
+					_local = true;
 			}
 			else if (addrinfo->ai_family == AF_INET6)
 			{
 				::sockaddr_in6& sockaddr_in6 = reinterpret_cast<::sockaddr_in6&>(sockaddr);
 				::memcpy(&sockaddr_in6, addrinfo->ai_addr, sizeof sockaddr_in6);
 				sockaddr_in6.sin6_port = ::htons(port);
-				resolved.local = is_local(sockaddr_in6);
+				if (!_local && is_local(sockaddr_in6))
+					_local = true;
 			}
 			else
 				continue;
-			resolved.addresses.emplace_back(sockaddr);
+			_addresses.emplace_back(sockaddr);
 		}
-		return resolved;
 	}
 }

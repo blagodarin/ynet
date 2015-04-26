@@ -82,6 +82,10 @@ namespace ynet
 
 		// Returns the port for the client to connect to.
 		virtual uint16_t port() const = 0;
+
+		// Sets the time to wait for graceful disconnect during client destruction.
+		// A negative number means an infinite timeout.
+		virtual void set_disconnect_timeout(int milliseconds) = 0;
 	};
 
 	// Network server.

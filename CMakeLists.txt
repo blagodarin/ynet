@@ -9,7 +9,7 @@ add_library(ynet
 	src/client.cpp
 	src/local.cpp
 	src/main.cpp
-	src/resolve.cpp
+	src/resolution.cpp
 	src/server.cpp
 	src/socket.cpp
 	src/tcp.cpp)

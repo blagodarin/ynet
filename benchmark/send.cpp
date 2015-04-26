@@ -22,6 +22,7 @@ SendClient::SendClient(uint16_t port, int64_t seconds, size_t bytes, unsigned fl
 	, _flags(flags)
 	, _buffer(bytes)
 {
+	set_disconnect_timeout(-1);
 }
 
 void SendClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)

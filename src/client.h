@@ -18,6 +18,7 @@ namespace ynet
 
 		std::string host() const override { return _host; }
 		uint16_t port() const override { return _port; }
+		void set_disconnect_timeout(int milliseconds) { _disconnect_timeout = milliseconds; }
 
 	private:
 
@@ -33,6 +34,8 @@ namespace ynet
 		ConnectionImpl* _connection = nullptr;
 		bool _stopping = false;
 		std::condition_variable _stop_event;
+		int _disconnect_timeout = 0;
+		std::condition_variable _disconnect_event;
 		std::thread _thread;
 	};
 }

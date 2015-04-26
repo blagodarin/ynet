@@ -23,6 +23,7 @@ int64_t BenchmarkClient::run()
 {
 	{
 		const auto client = ynet::Client::create(*this, "localhost", _port, _client_options);
+		client->set_disconnect_timeout(_disconnect_timeout);
 		std::unique_lock<std::mutex> lock(_mutex);
 		_stop_condition.wait(lock, [this]() { return _stop_flag; });
 	}

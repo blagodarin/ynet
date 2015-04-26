@@ -21,6 +21,7 @@ public:
 protected:
 
 	void discard_benchmark();
+	void set_disconnect_timeout(int milliseconds) { _disconnect_timeout = milliseconds; }
 	void start_benchmark();
 	bool stop_benchmark();
 
@@ -40,6 +41,7 @@ private:
 	int64_t _elapsed_time = 0;
 	bool _stopped = false;
 	bool _discarded = false;
+	int _disconnect_timeout = 0;
 };
 
 class BenchmarkServer : public ynet::Server::Callbacks

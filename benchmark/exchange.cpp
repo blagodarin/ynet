@@ -23,6 +23,7 @@ ExchangeClient::ExchangeClient(uint16_t port, int64_t seconds, size_t bytes, boo
 	: BenchmarkClient(port, seconds, ::client_options(optimized_loopback))
 	, _buffer(bytes)
 {
+	set_disconnect_timeout(-1);
 }
 
 void ExchangeClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)
