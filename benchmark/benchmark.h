@@ -14,7 +14,7 @@ class BenchmarkClient : public ynet::Client::Callbacks
 {
 public:
 
-	BenchmarkClient(uint16_t port, int64_t seconds, const ynet::Client::Options& options = {});
+	BenchmarkClient(uint16_t port, int64_t seconds, ynet::Protocol protocol);
 
 	int64_t run();
 
@@ -32,7 +32,7 @@ private:
 private:
 
 	const uint16_t _port;
-	const ynet::Client::Options _client_options;
+	const ynet::Protocol _protocol;
 	std::mutex _mutex;
 	bool _stop_flag = false;
 	std::condition_variable _stop_condition;
@@ -48,7 +48,7 @@ class BenchmarkServer : public ynet::Server::Callbacks
 {
 public:
 
-	BenchmarkServer(uint16_t port, const ynet::Server::Options& options = {});
+	BenchmarkServer(uint16_t port, ynet::Protocol protocol);
 
 protected:
 

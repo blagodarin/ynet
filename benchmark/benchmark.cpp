@@ -12,9 +12,9 @@ namespace
 	}
 }
 
-BenchmarkClient::BenchmarkClient(uint16_t port, int64_t seconds, const ynet::Client::Options& options)
+BenchmarkClient::BenchmarkClient(uint16_t port, int64_t seconds, ynet::Protocol protocol)
 	: _port(port)
-	, _client_options(options)
+	, _protocol(protocol)
 	, _benchmark_time(seconds * 1000)
 {
 }
@@ -22,7 +22,7 @@ BenchmarkClient::BenchmarkClient(uint16_t port, int64_t seconds, const ynet::Cli
 int64_t BenchmarkClient::run()
 {
 	{
-		const auto client = ynet::Client::create(*this, "localhost", _port, _client_options);
+		const auto client = ynet::Client::create(*this, "localhost", _port, _protocol);
 		client->set_disconnect_timeout(_disconnect_timeout);
 		std::unique_lock<std::mutex> lock(_mutex);
 		_stop_condition.wait(lock, [this]() { return _stop_flag; });
@@ -67,8 +67,8 @@ void BenchmarkClient::on_started()
 	start_benchmark();
 }
 
-BenchmarkServer::BenchmarkServer(uint16_t port, const ynet::Server::Options& options)
-	: _server(ynet::Server::create(*this, port, options))
+BenchmarkServer::BenchmarkServer(uint16_t port, ynet::Protocol protocol)
+	: _server(ynet::Server::create(*this, port, protocol))
 {
 	std::unique_lock<std::mutex> lock(_mutex);
 	_server_started_condition.wait(lock, [this]() { return _server_started; });

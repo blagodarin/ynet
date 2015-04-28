@@ -6,7 +6,7 @@ class ConnectDisconnectClient : public BenchmarkClient
 {
 public:
 
-	ConnectDisconnectClient(uint16_t port, int64_t seconds, bool optimized_loopback);
+	ConnectDisconnectClient(uint16_t port, int64_t seconds, ynet::Protocol protocol);
 
 	const unsigned marks() const { return _marks; }
 
@@ -26,7 +26,7 @@ class ConnectDisconnectServer : public BenchmarkServer
 {
 public:
 
-	ConnectDisconnectServer(uint16_t port, bool optimized_loopback);
+	ConnectDisconnectServer(uint16_t port, ynet::Protocol protocol);
 	~ConnectDisconnectServer() override { stop(); }
 
 private:

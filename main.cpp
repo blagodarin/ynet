@@ -6,7 +6,7 @@ class Client : public ynet::Client::Callbacks
 {
 public:
 
-	Client(const std::string& host, uint16_t port): _client(ynet::Client::create(*this, host, port)) {}
+	Client(const std::string& host, uint16_t port): _client(ynet::Client::create(*this, host, port, ynet::Protocol::Tcp)) {}
 
 private:
 
@@ -60,7 +60,7 @@ class Server : public ynet::Server::Callbacks
 {
 public:
 
-	Server(uint16_t port): _server(ynet::Server::create(*this, port)) {}
+	Server(uint16_t port): _server(ynet::Server::create(*this, port, ynet::Protocol::Tcp)) {}
 
 private:
 

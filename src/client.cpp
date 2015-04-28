@@ -9,16 +9,11 @@
 
 namespace ynet
 {
-	Client::Options::Options()
-		: optimized_loopback(true)
-	{
-	}
-
-	ClientImpl::ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options)
+	ClientImpl::ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, Protocol protocol)
 		: _callbacks(callbacks)
 		, _host(host)
 		, _port(port)
-		, _options(options)
+		, _protocol(protocol)
 		, _thread([this]() { run(); })
 	{
 	}
@@ -55,17 +50,25 @@ namespace ynet
 		const auto resolve_and_connect = [this]() -> std::unique_ptr<ConnectionImpl>
 		{
 			const Resolution resolution(_host, _port);
-			if (_options.optimized_loopback && resolution.local())
+			switch (_protocol)
 			{
-				auto connection = create_local_connection(_port);
-				if (connection)
-					return connection;
-			}
-			for (const auto& address : resolution)
-			{
-				auto connection = create_tcp_connection(address);
-				if (connection)
-					return connection;
+			case Protocol::TcpLocal:
+				if (resolution.local())
+				{
+					auto connection = create_local_connection(_port);
+					if (connection)
+						return connection;
+				}
+			case Protocol::Tcp:
+				for (const auto& address : resolution)
+				{
+					auto connection = create_tcp_connection(address);
+					if (connection)
+						return connection;
+				}
+				break;
+			default:
+				throw std::logic_error("Bad protocol");
 			}
 			return {};
 		};

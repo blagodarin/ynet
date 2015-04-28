@@ -15,9 +15,9 @@ namespace ynet
 	{
 	}
 
-	std::unique_ptr<Client> Client::create(Callbacks& callbacks, const std::string& host, uint16_t port, const Options& options)
+	std::unique_ptr<Client> Client::create(Callbacks& callbacks, const std::string& host, uint16_t port, Protocol protocol)
 	{
-		return std::make_unique<ClientImpl>(callbacks, host, port, options);
+		return std::make_unique<ClientImpl>(callbacks, host, port, protocol);
 	}
 
 	void Server::Callbacks::on_started()
@@ -28,8 +28,8 @@ namespace ynet
 	{
 	}
 
-	std::unique_ptr<Server> Server::create(Callbacks& callbacks, uint16_t port, const Options& options)
+	std::unique_ptr<Server> Server::create(Callbacks& callbacks, uint16_t port, Protocol protocol)
 	{
-		return std::make_unique<ServerImpl>(callbacks, port, options);
+		return std::make_unique<ServerImpl>(callbacks, port, protocol);
 	}
 }

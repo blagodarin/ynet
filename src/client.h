@@ -13,7 +13,7 @@ namespace ynet
 	{
 	public:
 
-		ClientImpl(Callbacks&, const std::string& host, uint16_t port, const Options& options);
+		ClientImpl(Callbacks&, const std::string& host, uint16_t port, Protocol);
 		~ClientImpl() override;
 
 		std::string host() const override { return _host; }
@@ -29,7 +29,7 @@ namespace ynet
 		Callbacks& _callbacks;
 		const std::string _host;
 		const uint16_t _port;
-		const Options _options;
+		const Protocol _protocol;
 		std::mutex _mutex;
 		ConnectionImpl* _connection = nullptr;
 		bool _stopping = false;

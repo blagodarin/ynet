@@ -1,24 +1,7 @@
 #include "receive.h"
 
-namespace
-{
-	ynet::Client::Options client_options(bool optimized_loopback)
-	{
-		ynet::Client::Options options;
-		options.optimized_loopback = optimized_loopback;
-		return options;
-	}
-
-	ynet::Server::Options server_options(bool optimized_loopback)
-	{
-		ynet::Server::Options options;
-		options.optimized_loopback = optimized_loopback;
-		return options;
-	}
-}
-
-ReceiveClient::ReceiveClient(uint16_t port, int64_t seconds, size_t bytes, bool optimized_loopback)
-	: BenchmarkClient(port, seconds, ::client_options(optimized_loopback))
+ReceiveClient::ReceiveClient(uint16_t port, int64_t seconds, size_t bytes, ynet::Protocol protocol)
+	: BenchmarkClient(port, seconds, protocol)
 	, _bytes_per_mark(bytes)
 {
 	// The server sends us data as long as it can, so infinite wait for graceful disconnect is not an option.
@@ -48,8 +31,8 @@ void ReceiveClient::on_failed_to_connect(int&)
 	discard_benchmark();
 }
 
-ReceiveServer::ReceiveServer(uint16_t port, size_t bytes, bool optimized_loopback)
-	: BenchmarkServer(port, ::server_options(optimized_loopback))
+ReceiveServer::ReceiveServer(uint16_t port, size_t bytes, ynet::Protocol protocol)
+	: BenchmarkServer(port, protocol)
 	, _buffer(bytes)
 {
 }

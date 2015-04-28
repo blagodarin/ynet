@@ -13,7 +13,7 @@ namespace ynet
 
 		virtual ~Connection() = default;
 
-		//
+		// Aborts the connection.
 		virtual void abort() = 0;
 
 		// Returns the address of the remote party.
@@ -25,6 +25,16 @@ namespace ynet
 		// Synchronously send a message to the remote party.
 		// Returns true if the message has been sent.
 		virtual bool send(const void* data, size_t size) = 0;
+	};
+
+	// Network protocol.
+	enum class Protocol
+	{
+		// Plain TCP.
+		Tcp,
+
+		// TCP with local host optimization.
+		TcpLocal,
 	};
 
 	// Network client.
@@ -64,16 +74,8 @@ namespace ynet
 			virtual void on_stopped();
 		};
 
-		//
-		struct Options
-		{
-			bool optimized_loopback; //
-
-			Options();
-		};
-
 		// Creates a client.
-		static std::unique_ptr<Client> create(Callbacks&, const std::string& host, uint16_t port, const Options& options = {});
+		static std::unique_ptr<Client> create(Callbacks&, const std::string& host, uint16_t port, Protocol);
 
 		virtual ~Client() = default;
 
@@ -85,6 +87,7 @@ namespace ynet
 
 		// Sets the time to wait for graceful disconnect during client destruction.
 		// A negative number means an infinite timeout.
+		// The default value is zero meaning instant connection reset.
 		virtual void set_disconnect_timeout(int milliseconds) = 0;
 	};
 
@@ -124,16 +127,8 @@ namespace ynet
 			virtual void on_stopped();
 		};
 
-		//
-		struct Options
-		{
-			bool optimized_loopback; //
-
-			Options();
-		};
-
 		// Creates a server.
-		static std::unique_ptr<Server> create(Callbacks&, uint16_t port, const Options& options = Options());
+		static std::unique_ptr<Server> create(Callbacks&, uint16_t port, Protocol);
 
 		virtual ~Server() = default;
 

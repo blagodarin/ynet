@@ -10,15 +10,10 @@
 
 namespace ynet
 {
-	Server::Options::Options()
-		: optimized_loopback(true)
-	{
-	}
-
-	ServerImpl::ServerImpl(Callbacks& callbacks, uint16_t port, const Options& options)
+	ServerImpl::ServerImpl(Callbacks& callbacks, uint16_t port, Protocol protocol)
 		: _callbacks(callbacks)
 		, _backend_callbacks(_callbacks)
-		, _options(options)
+		, _protocol(protocol)
 		, _address(Address::Family::IPv4, Address::Special::Any, port)
 		, _thread([this]() { run(); })
 	{
@@ -49,9 +44,20 @@ namespace ynet
 	void ServerImpl::run()
 	{
 		std::unique_ptr<ServerBackend> backend;
+		bool has_local_backend = false;
+
 		for (; ; )
 		{
-			backend = create_tcp_server(_address);
+			switch (_protocol)
+			{
+			case Protocol::TcpLocal:
+				has_local_backend = true;
+			case Protocol::Tcp:
+				backend = create_tcp_server(_address);
+				break;
+			default:
+				throw std::logic_error("Bad protocol");
+			}
 			if (backend)
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
@@ -75,7 +81,7 @@ namespace ynet
 		}
 
 		std::thread local_thread;
-		if (_options.optimized_loopback)
+		if (has_local_backend)
 		{
 			local_thread = std::thread(std::bind(&ServerImpl::run_local, this));
 			std::unique_lock<std::mutex> lock(_mutex);
@@ -90,7 +96,7 @@ namespace ynet
 
 		_callbacks.on_started();
 
-		if (_options.optimized_loopback)
+		if (has_local_backend)
 		{
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
@@ -101,7 +107,7 @@ namespace ynet
 
 		backend->run(_backend_callbacks);
 
-		if (_options.optimized_loopback)
+		if (has_local_backend)
 			local_thread.join();
 
 		_callbacks.on_stopped();

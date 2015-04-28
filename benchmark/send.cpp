@@ -1,25 +1,7 @@
 #include "send.h"
 
-namespace
-{
-	ynet::Client::Options client_options(bool optimized_loopback)
-	{
-		ynet::Client::Options options;
-		options.optimized_loopback = optimized_loopback;
-		return options;
-	}
-
-	ynet::Server::Options server_options(bool optimized_loopback)
-	{
-		ynet::Server::Options options;
-		options.optimized_loopback = optimized_loopback;
-		return options;
-	}
-}
-
-SendClient::SendClient(uint16_t port, int64_t seconds, size_t bytes, unsigned flags)
-	: BenchmarkClient(port, seconds, ::client_options(flags & BenchmarkLocal))
-	, _flags(flags)
+SendClient::SendClient(uint16_t port, int64_t seconds, size_t bytes, ynet::Protocol protocol)
+	: BenchmarkClient(port, seconds, protocol)
 	, _buffer(bytes)
 {
 	set_disconnect_timeout(-1);
@@ -48,8 +30,8 @@ void SendClient::on_failed_to_connect(int&)
 	discard_benchmark();
 }
 
-SendServer::SendServer(uint16_t port, unsigned flags)
-	: BenchmarkServer(port, ::server_options(flags & BenchmarkLocal))
+SendServer::SendServer(uint16_t port, ynet::Protocol protocol)
+	: BenchmarkServer(port, protocol)
 {
 }
 

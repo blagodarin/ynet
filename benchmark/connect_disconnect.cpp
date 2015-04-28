@@ -1,24 +1,7 @@
 #include "connect_disconnect.h"
 
-namespace
-{
-	ynet::Client::Options client_options(bool optimized_loopback)
-	{
-		ynet::Client::Options options;
-		options.optimized_loopback = optimized_loopback;
-		return options;
-	}
-
-	ynet::Server::Options server_options(bool optimized_loopback)
-	{
-		ynet::Server::Options options;
-		options.optimized_loopback = optimized_loopback;
-		return options;
-	}
-}
-
-ConnectDisconnectClient::ConnectDisconnectClient(uint16_t port, int64_t seconds, bool optimized_loopback)
-	: BenchmarkClient(port, seconds, client_options(optimized_loopback))
+ConnectDisconnectClient::ConnectDisconnectClient(uint16_t port, int64_t seconds, ynet::Protocol protocol)
+	: BenchmarkClient(port, seconds, protocol)
 {
 	set_disconnect_timeout(-1);
 }
@@ -44,8 +27,8 @@ void ConnectDisconnectClient::on_failed_to_connect(int&)
 	discard_benchmark();
 }
 
-ConnectDisconnectServer::ConnectDisconnectServer(uint16_t port, bool optimized_loopback)
-	: BenchmarkServer(port, server_options(optimized_loopback))
+ConnectDisconnectServer::ConnectDisconnectServer(uint16_t port, ynet::Protocol protocol)
+	: BenchmarkServer(port, protocol)
 {
 }
 
