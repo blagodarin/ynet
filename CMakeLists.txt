@@ -1,6 +1,11 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+
 project(ynet CXX)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pthread -std=gnu++1y -Wall")
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall")
+endif()
+
 include_directories(include)
 
 add_library(ynet
@@ -12,11 +17,14 @@ add_library(ynet
 	src/resolution.cpp
 	src/server.cpp
 	src/socket.cpp
-	src/tcp.cpp)
+	src/tcp.cpp
+	)
+
+link_libraries(ynet)
 
 add_executable(ynet-test
-	main.cpp)
-target_link_libraries(ynet-test ynet)
+	main.cpp
+	)
 
 add_executable(ynet-benchmark
 	benchmark/benchmark.cpp
@@ -24,5 +32,7 @@ add_executable(ynet-benchmark
 	benchmark/exchange.cpp
 	benchmark/receive.cpp
 	benchmark/send.cpp
-	benchmark/main.cpp)
-target_link_libraries(ynet-benchmark ynet)
+	benchmark/main.cpp
+	)
+
+set_property(TARGET ynet ynet-benchmark ynet-test PROPERTY CXX_STANDARD 14)
