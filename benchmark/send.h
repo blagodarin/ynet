@@ -8,7 +8,7 @@ class SendClient : public BenchmarkClient
 {
 public:
 
-	SendClient(uint16_t port, int64_t seconds, size_t bytes, ynet::Protocol protocol);
+	SendClient(const ClientFactory&, int64_t seconds, size_t bytes);
 
 	uint64_t bytes() const { return _marks * _buffer.size(); }
 	uint64_t marks() const { return _marks; }
@@ -31,7 +31,7 @@ class SendServer : public BenchmarkServer
 {
 public:
 
-	SendServer(uint16_t port, ynet::Protocol protocol);
+	SendServer(const ServerFactory&);
 	~SendServer() override { stop(); }
 
 private:

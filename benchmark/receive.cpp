@@ -1,7 +1,7 @@
 #include "receive.h"
 
-ReceiveClient::ReceiveClient(uint16_t port, int64_t seconds, size_t bytes, ynet::Protocol protocol)
-	: BenchmarkClient(port, seconds, protocol)
+ReceiveClient::ReceiveClient(const ClientFactory& factory, int64_t seconds, size_t bytes)
+	: BenchmarkClient(factory, seconds)
 	, _bytes_per_mark(bytes)
 {
 	// The server sends us data as long as it can, so infinite wait for graceful disconnect is not an option.
@@ -31,8 +31,8 @@ void ReceiveClient::on_failed_to_connect(int&)
 	discard_benchmark();
 }
 
-ReceiveServer::ReceiveServer(uint16_t port, size_t bytes, ynet::Protocol protocol)
-	: BenchmarkServer(port, protocol)
+ReceiveServer::ReceiveServer(const ServerFactory& factory, size_t bytes)
+	: BenchmarkServer(factory)
 	, _buffer(bytes)
 {
 }

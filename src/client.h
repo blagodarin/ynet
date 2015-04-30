@@ -13,11 +13,9 @@ namespace ynet
 	{
 	public:
 
-		ClientImpl(Callbacks&, const std::string& host, uint16_t port, Protocol);
+		ClientImpl(Callbacks&, const std::function<std::unique_ptr<ConnectionImpl>()>& factory);
 		~ClientImpl() override;
 
-		std::string host() const override { return _host; }
-		uint16_t port() const override { return _port; }
 		void set_disconnect_timeout(int milliseconds) { _disconnect_timeout = milliseconds; }
 
 	private:
@@ -27,9 +25,7 @@ namespace ynet
 	private:
 	
 		Callbacks& _callbacks;
-		const std::string _host;
-		const uint16_t _port;
-		const Protocol _protocol;
+		const std::function<std::unique_ptr<ConnectionImpl>()> _factory;
 		std::mutex _mutex;
 		ConnectionImpl* _connection = nullptr;
 		bool _stopping = false;

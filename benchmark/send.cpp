@@ -1,7 +1,7 @@
 #include "send.h"
 
-SendClient::SendClient(uint16_t port, int64_t seconds, size_t bytes, ynet::Protocol protocol)
-	: BenchmarkClient(port, seconds, protocol)
+SendClient::SendClient(const ClientFactory& factory, int64_t seconds, size_t bytes)
+	: BenchmarkClient(factory, seconds)
 	, _buffer(bytes)
 {
 	set_disconnect_timeout(-1);
@@ -30,8 +30,8 @@ void SendClient::on_failed_to_connect(int&)
 	discard_benchmark();
 }
 
-SendServer::SendServer(uint16_t port, ynet::Protocol protocol)
-	: BenchmarkServer(port, protocol)
+SendServer::SendServer(const ServerFactory& factory)
+	: BenchmarkServer(factory)
 {
 }
 

@@ -128,47 +128,51 @@ namespace
 	}
 }
 
-BenchmarkResults benchmark_connect_disconnect(unsigned seconds, ynet::Protocol protocol)
+template <class Factory>
+BenchmarkResults benchmark_connect_disconnect(unsigned seconds)
 {
 	std::cout << "Benchmarking connect-disconnect (1 thread, " << seconds << " s)..." << std::endl;
-	ConnectDisconnectServer server(5445, protocol);
-	ConnectDisconnectClient client(5445, seconds, protocol);
+	ConnectDisconnectServer server(Factory::create_server);
+	ConnectDisconnectClient client(Factory::create_client, seconds);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
 	return BenchmarkResults(milliseconds, client.marks());
 }
 
-BenchmarkResults benchmark_exchange(unsigned seconds, size_t bytes, ynet::Protocol protocol)
+template <class Factory>
+BenchmarkResults benchmark_exchange(unsigned seconds, size_t bytes)
 {
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking exchange (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
-	ExchangeServer server(5445, bytes, protocol);
-	ExchangeClient client(5445, seconds, bytes, protocol);
+	ExchangeServer server(Factory::create_server, bytes);
+	ExchangeClient client(Factory::create_client, seconds, bytes);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
 	return BenchmarkResults(milliseconds, client.marks(), bytes, client.bytes());
 }
 
-BenchmarkResults benchmark_receive(unsigned seconds, size_t bytes, ynet::Protocol protocol)
+template <class Factory>
+BenchmarkResults benchmark_receive(unsigned seconds, size_t bytes)
 {
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking receive (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
-	ReceiveServer server(5445, bytes, protocol);
-	ReceiveClient client(5445, seconds, bytes, protocol);
+	ReceiveServer server(Factory::create_server, bytes);
+	ReceiveClient client(Factory::create_client, seconds, bytes);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
 	return BenchmarkResults(milliseconds, client.marks(), bytes, client.bytes());
 }
 
-BenchmarkResults benchmark_send(unsigned seconds, size_t bytes, ynet::Protocol protocol)
+template <class Factory>
+BenchmarkResults benchmark_send(unsigned seconds, size_t bytes)
 {
 	const auto& human_readable_bytes = ::make_human_readable(bytes);
 	std::cout << "Benchmarking send (" << seconds << " s, " << human_readable_bytes << ")..." << std::endl;
-	SendServer server(5445, protocol);
-	SendClient client(5445, seconds, bytes, protocol);
+	SendServer server(Factory::create_server);
+	SendClient client(Factory::create_client, seconds, bytes);
 	const auto milliseconds = client.run();
 	if (milliseconds < 0)
 		return {};
@@ -184,34 +188,34 @@ int main(int argc, char** argv)
 	if (options.count("connect"))
 	{
 		std::vector<BenchmarkResults> results;
-		results.emplace_back(benchmark_connect_disconnect(1, ynet::Protocol::Tcp));
+		results.emplace_back(benchmark_connect_disconnect<BenchmarkTcp>(1)); // TODO: Change seconds to attempts.
 		print_results(results);
 	}
 	if (options.count("connect-local"))
 	{
 		std::vector<BenchmarkResults> results;
-		results.emplace_back(benchmark_connect_disconnect(test_seconds, ynet::Protocol::TcpLocal));
+		results.emplace_back(benchmark_connect_disconnect<BenchmarkLocal>(test_seconds));
 		print_results(results);
 	}
 	if (options.count("send"))
 	{
 		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			results.emplace_back(benchmark_send(test_seconds, 1 << i, ynet::Protocol::Tcp));
+			results.emplace_back(benchmark_send<BenchmarkTcp>(test_seconds, 1 << i));
 		print_results(results);
 	}
 	if (options.count("receive"))
 	{
 		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			results.emplace_back(benchmark_receive(test_seconds, 1 << i, ynet::Protocol::Tcp));
+			results.emplace_back(benchmark_receive<BenchmarkTcp>(test_seconds, 1 << i));
 		print_results(results);
 	}
 	if (options.count("exchange"))
 	{
 		std::vector<BenchmarkResults> results;
 		for (int i = 0; i <= 29; ++i)
-			results.emplace_back(benchmark_exchange(test_seconds, 1 << i, ynet::Protocol::Tcp));
+			results.emplace_back(benchmark_exchange<BenchmarkTcp>(test_seconds, 1 << i));
 		print_results(results);
 	}
 	if (options.count("local"))
@@ -220,24 +224,24 @@ int main(int argc, char** argv)
 		std::vector<BenchmarkResults> local;
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_send(test_seconds, 1 << i, ynet::Protocol::Tcp));
-			local.emplace_back(benchmark_send(test_seconds, 1 << i, ynet::Protocol::TcpLocal));
+			base.emplace_back(benchmark_send<BenchmarkTcp>(test_seconds, 1 << i));
+			local.emplace_back(benchmark_send<BenchmarkLocal>(test_seconds, 1 << i));
 		}
 		print_compared(base, local);
 		base.clear();
 		local.clear();
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_receive(test_seconds, 1 << i, ynet::Protocol::Tcp));
-			local.emplace_back(benchmark_receive(test_seconds, 1 << i, ynet::Protocol::TcpLocal));
+			base.emplace_back(benchmark_receive<BenchmarkTcp>(test_seconds, 1 << i));
+			local.emplace_back(benchmark_receive<BenchmarkLocal>(test_seconds, 1 << i));
 		}
 		print_compared(base, local);
 		base.clear();
 		local.clear();
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_exchange(test_seconds, 1 << i, ynet::Protocol::Tcp));
-			local.emplace_back(benchmark_exchange(test_seconds, 1 << i, ynet::Protocol::TcpLocal));
+			base.emplace_back(benchmark_exchange<BenchmarkTcp>(test_seconds, 1 << i));
+			local.emplace_back(benchmark_exchange<BenchmarkLocal>(test_seconds, 1 << i));
 		}
 		print_compared(base, local);
 	}

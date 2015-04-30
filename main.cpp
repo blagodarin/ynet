@@ -6,7 +6,10 @@ class Client : public ynet::Client::Callbacks
 {
 public:
 
-	Client(const std::string& host, uint16_t port): _client(ynet::Client::create(*this, host, port, ynet::Protocol::Tcp)) {}
+	Client(const std::string& host, uint16_t port)
+		: _host(host)
+		, _port(port)
+		, _client(ynet::Client::create_tcp(*this, _host, _port)) {}
 
 private:
 
@@ -39,19 +42,16 @@ private:
 	{
 		if (_initial_connect)
 		{
-			std::cout << "Failed to connect to " << _client->host() << " (port " << _client->port() << ")" << std::endl;
+			std::cout << "Failed to connect to " << _host << " (port " << _port << ")" << std::endl;
 			_initial_connect = false;
 		}
 		reconnect_timeout = 1000;
 	}
 
-	void on_stopped() override
-	{
-		std::cout << "Client stopped" << std::endl;
-	}
-
 private:
 
+	const std::string _host;
+	const uint16_t _port;
 	bool _initial_connect = true;
 	std::unique_ptr<ynet::Client> _client;
 };
@@ -60,7 +60,7 @@ class Server : public ynet::Server::Callbacks
 {
 public:
 
-	Server(uint16_t port): _server(ynet::Server::create(*this, port, ynet::Protocol::Tcp)) {}
+	Server(uint16_t port): _server(ynet::Server::create_tcp(*this, port)) {}
 
 private:
 
@@ -95,11 +95,6 @@ private:
 	void on_disconnected(const std::shared_ptr<ynet::Connection>& connection) override
 	{
 		std::cout << "Client " << connection->address() << " disconnected" << std::endl;
-	}
-
-	void on_stopped() override
-	{
-		std::cout << "Server stopped" << std::endl;
 	}
 
 private:

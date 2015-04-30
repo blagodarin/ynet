@@ -27,16 +27,6 @@ namespace ynet
 		virtual bool send(const void* data, size_t size) = 0;
 	};
 
-	// Network protocol.
-	enum class Protocol
-	{
-		// Plain TCP.
-		Tcp,
-
-		// TCP with local host optimization.
-		TcpLocal,
-	};
-
 	// Network client.
 	class Client
 	{
@@ -68,22 +58,16 @@ namespace ynet
 			// 'reconnect_timeout' should be set to a nonnegative value
 			// to try to reconnect in the specified number of milliseconds.
 			virtual void on_failed_to_connect(int& reconnect_timeout) = 0;
-
-			// Called when any network activity has finished.
-			// The default implementation does nothing.
-			virtual void on_stopped();
 		};
 
-		// Creates a client.
-		static std::unique_ptr<Client> create(Callbacks&, const std::string& host, uint16_t port, Protocol);
+		// Creates a local host client.
+		// 'port' serves as a service identifier.
+		static std::unique_ptr<Client> create_local(Callbacks&, uint16_t port);
+
+		// Creates a TCP client.
+		static std::unique_ptr<Client> create_tcp(Callbacks&, const std::string& host, uint16_t port);
 
 		virtual ~Client() = default;
-
-		// Returns the host for the client to connect to (as was specified in create).
-		virtual std::string host() const = 0;
-
-		// Returns the port for the client to connect to.
-		virtual uint16_t port() const = 0;
 
 		// Sets the time to wait for graceful disconnect during client destruction.
 		// A negative number means an infinite timeout.
@@ -121,21 +105,15 @@ namespace ynet
 
 			// Called when a client has been disconnected from the server.
 			virtual void on_disconnected(const std::shared_ptr<Connection>&) = 0;
-
-			// Called when any network activity has finished.
-			// The default implementation does nothing.
-			virtual void on_stopped();
 		};
 
-		// Creates a server.
-		static std::unique_ptr<Server> create(Callbacks&, uint16_t port, Protocol);
+		// Creates a local host server.
+		// 'port' serves as a service identifier.
+		static std::unique_ptr<Server> create_local(Callbacks&, uint16_t port);
+
+		// Creates a TCP server.
+		static std::unique_ptr<Server> create_tcp(Callbacks&, uint16_t port);
 
 		virtual ~Server() = default;
-
-		// Returns the address the server is bound to.
-		virtual std::string address() const = 0;
-
-		// Returns the port the server is bound to.
-		virtual uint16_t port() const = 0;
 	};
 }

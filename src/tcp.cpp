@@ -9,6 +9,7 @@
 #include <poll.h>
 
 #include "backend.h"
+#include "resolution.h"
 #include "socket.h"
 
 namespace ynet
@@ -40,7 +41,7 @@ namespace ynet
 
 			const auto accept = [&connections, &callbacks](int socket)
 			{
-				::sockaddr_storage sockaddr;
+				::sockaddr_storage sockaddr = {};
 				auto sockaddr_size = sizeof sockaddr;
 				const auto peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
 				if (peer == -1)
@@ -120,17 +121,21 @@ namespace ynet
 		const Socket _socket;
 	};
 
-	std::unique_ptr<ConnectionImpl> create_tcp_connection(const Address& address)
+	std::unique_ptr<ConnectionImpl> create_tcp_connection(const std::string& host, uint16_t port)
 	{
-		const auto& sockaddr = address.sockaddr();
-		Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
-		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
-			return {};
-		return std::make_unique<SocketConnection>(address, std::move(socket), SocketConnection::Side::Client, TcpBufferSize);
+		for (const auto& sockaddr : resolve(host, port))
+		{
+			Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
+			if (-1 != ::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr))
+				return std::make_unique<SocketConnection>(Address(sockaddr), std::move(socket), SocketConnection::Side::Client, TcpBufferSize);
+		}
+		return {};
 	}
 
-	std::unique_ptr<ServerBackend> create_tcp_server(const Address& address)
+	std::unique_ptr<ServerBackend> create_tcp_server(uint16_t port)
 	{
+		// TODO: Add (optional) IPv6 support.
+		const Address address(Address::Family::IPv4, Address::Special::Any, port);
 		const auto& sockaddr = address.sockaddr();
 		Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (::bind(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)

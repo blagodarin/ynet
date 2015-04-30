@@ -1,7 +1,7 @@
 #include "connect_disconnect.h"
 
-ConnectDisconnectClient::ConnectDisconnectClient(uint16_t port, int64_t seconds, ynet::Protocol protocol)
-	: BenchmarkClient(port, seconds, protocol)
+ConnectDisconnectClient::ConnectDisconnectClient(const ClientFactory& factory, int64_t seconds)
+	: BenchmarkClient(factory, seconds)
 {
 	set_disconnect_timeout(-1);
 }
@@ -27,8 +27,8 @@ void ConnectDisconnectClient::on_failed_to_connect(int&)
 	discard_benchmark();
 }
 
-ConnectDisconnectServer::ConnectDisconnectServer(uint16_t port, ynet::Protocol protocol)
-	: BenchmarkServer(port, protocol)
+ConnectDisconnectServer::ConnectDisconnectServer(const ServerFactory& factory)
+	: BenchmarkServer(factory)
 {
 }
 

@@ -1,19 +1,15 @@
 #include "client.h"
 
 #include <cassert>
+#include <vector>
 
 #include "connection.h"
-#include "local.h"
-#include "resolution.h"
-#include "tcp.h"
 
 namespace ynet
 {
-	ClientImpl::ClientImpl(Callbacks& callbacks, const std::string& host, uint16_t port, Protocol protocol)
+	ClientImpl::ClientImpl(Callbacks& callbacks, const std::function<std::unique_ptr<ConnectionImpl>()>& factory)
 		: _callbacks(callbacks)
-		, _host(host)
-		, _port(port)
-		, _protocol(protocol)
+		, _factory(factory)
 		, _thread([this]() { run(); })
 	{
 	}
@@ -47,39 +43,13 @@ namespace ynet
 
 	void ClientImpl::run()
 	{
-		const auto resolve_and_connect = [this]() -> std::unique_ptr<ConnectionImpl>
-		{
-			const Resolution resolution(_host, _port);
-			switch (_protocol)
-			{
-			case Protocol::TcpLocal:
-				if (resolution.local())
-				{
-					auto connection = create_local_connection(_port);
-					if (connection)
-						return connection;
-				}
-			case Protocol::Tcp:
-				for (const auto& address : resolution)
-				{
-					auto connection = create_tcp_connection(address);
-					if (connection)
-						return connection;
-				}
-				break;
-			default:
-				throw std::logic_error("Bad protocol");
-			}
-			return {};
-		};
-
 		_callbacks.on_started();
 		std::vector<uint8_t> receive_buffer;
 		for (; ; )
 		{
 			int reconnect_timeout = -1;
 			{
-				auto connection = resolve_and_connect();
+				auto connection = _factory();
 				if (connection)
 				{
 					{
@@ -123,6 +93,5 @@ namespace ynet
 			else if (_stopping)
 				break;
 		}
-		_callbacks.on_stopped();
 	}
 }

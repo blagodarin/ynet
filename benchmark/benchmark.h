@@ -5,16 +5,40 @@
 
 #include <ynet.h>
 
-enum
+using ClientFactory = std::function<std::unique_ptr<ynet::Client>(ynet::Client::Callbacks&)>;
+using ServerFactory = std::function<std::unique_ptr<ynet::Server>(ynet::Server::Callbacks&)>;
+
+struct BenchmarkLocal
 {
-	BenchmarkLocal = 1 << 0,
+	static std::unique_ptr<ynet::Client> create_client(ynet::Client::Callbacks& callbacks)
+	{
+		return ynet::Client::create_local(callbacks, 5445);
+	}
+
+	static std::unique_ptr<ynet::Server> create_server(ynet::Server::Callbacks& callbacks)
+	{
+		return ynet::Server::create_local(callbacks, 5445);
+	}
+};
+
+struct BenchmarkTcp
+{
+	static std::unique_ptr<ynet::Client> create_client(ynet::Client::Callbacks& callbacks)
+	{
+		return ynet::Client::create_tcp(callbacks, "localhost", 5445);
+	}
+
+	static std::unique_ptr<ynet::Server> create_server(ynet::Server::Callbacks& callbacks)
+	{
+		return ynet::Server::create_tcp(callbacks, 5445);
+	}
 };
 
 class BenchmarkClient : public ynet::Client::Callbacks
 {
 public:
 
-	BenchmarkClient(uint16_t port, int64_t seconds, ynet::Protocol protocol);
+	BenchmarkClient(const ClientFactory&, int64_t seconds);
 
 	int64_t run();
 
@@ -31,8 +55,7 @@ private:
 
 private:
 
-	const uint16_t _port;
-	const ynet::Protocol _protocol;
+	const ClientFactory _factory;
 	std::mutex _mutex;
 	bool _stop_flag = false;
 	std::condition_variable _stop_condition;
@@ -48,7 +71,7 @@ class BenchmarkServer : public ynet::Server::Callbacks
 {
 public:
 
-	BenchmarkServer(uint16_t port, ynet::Protocol protocol);
+	BenchmarkServer(const ServerFactory&);
 
 protected:
 
@@ -58,7 +81,6 @@ private:
 
 	void on_failed_to_start(int&) final;
 	void on_started() final;
-	void on_stopped() final;
 
 private:
 

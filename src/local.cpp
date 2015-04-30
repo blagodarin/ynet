@@ -154,17 +154,16 @@ namespace ynet
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
 		return std::make_unique<SocketConnection>(Address(Address::Family::IPv4, Address::Special::Loopback, port), std::move(socket), SocketConnection::Side::Client, LocalBufferSize);
-		// TODO: Specify the correct loopback address (IPv4 or IPv6, depending on the server).
 	}
 
-	std::unique_ptr<ServerBackend> create_local_server(const Address& address)
+	std::unique_ptr<ServerBackend> create_local_server(uint16_t port)
 	{
-		const auto& sockaddr = make_local_sockaddr(address.port());
+		const auto& sockaddr = make_local_sockaddr(port);
 		Socket socket(sockaddr.first.sun_family, SOCK_STREAM, 0);
 		if (::bind(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
 		if (::listen(socket.get(), LocalMaxPendingConnections) == -1)
 			return {};
-		return std::make_unique<LocalServer>(std::move(socket), Address(address.family(), Address::Special::Loopback, address.port()));
+		return std::make_unique<LocalServer>(std::move(socket), Address(Address::Family::IPv4, Address::Special::Loopback, port));
 	}
 }

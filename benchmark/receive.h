@@ -8,7 +8,7 @@ class ReceiveClient : public BenchmarkClient
 {
 public:
 
-	ReceiveClient(uint16_t port, int64_t seconds, size_t bytes, ynet::Protocol protocol);
+	ReceiveClient(const ClientFactory&, int64_t seconds, size_t bytes);
 
 	uint64_t bytes() const { return _bytes; }
 	uint64_t marks() const { return _bytes / _bytes_per_mark; }
@@ -30,7 +30,7 @@ class ReceiveServer : public BenchmarkServer
 {
 public:
 
-	ReceiveServer(uint16_t port, size_t bytes, ynet::Protocol protocol);
+	ReceiveServer(const ServerFactory&, size_t bytes);
 	~ReceiveServer() override { stop(); }
 
 private:

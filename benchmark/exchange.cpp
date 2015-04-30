@@ -1,7 +1,7 @@
 #include "exchange.h"
 
-ExchangeClient::ExchangeClient(uint16_t port, int64_t seconds, size_t bytes, ynet::Protocol protocol)
-	: BenchmarkClient(port, seconds, protocol)
+ExchangeClient::ExchangeClient(const ClientFactory& factory, int64_t seconds, size_t bytes)
+	: BenchmarkClient(factory, seconds)
 	, _buffer(bytes)
 {
 	set_disconnect_timeout(-1);
@@ -36,8 +36,8 @@ void ExchangeClient::on_failed_to_connect(int&)
 	discard_benchmark();
 }
 
-ExchangeServer::ExchangeServer(uint16_t port, size_t bytes, ynet::Protocol protocol)
-	: BenchmarkServer(port, protocol)
+ExchangeServer::ExchangeServer(const ServerFactory& factory, size_t bytes)
+	: BenchmarkServer(factory)
 	, _buffer(bytes)
 {
 }
