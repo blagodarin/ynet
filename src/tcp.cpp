@@ -2,14 +2,14 @@
 
 #include <cassert>
 #include <cstring>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include <netinet/in.h>
 #include <poll.h>
 
+#include "address.h"
 #include "backend.h"
-#include "resolution.h"
 #include "socket.h"
 
 namespace ynet
@@ -36,7 +36,7 @@ namespace ynet
 				return pollfd;
 			};
 
-			std::map<int, std::shared_ptr<ConnectionImpl>> connections;
+			std::unordered_map<int, std::shared_ptr<ConnectionImpl>> connections;
 			std::vector<uint8_t> receive_buffer(TcpBufferSize);
 
 			const auto accept = [&connections, &callbacks](int socket)
@@ -50,7 +50,7 @@ namespace ynet
 						return;
 					throw std::system_error(errno, std::generic_category());
 				}
-				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(Address(sockaddr), Socket(peer), SocketConnection::Side::Server, TcpBufferSize));
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(to_string(sockaddr), Socket(peer), SocketConnection::Side::Server, TcpBufferSize));
 				callbacks.on_connected(connection);
 				connections.emplace(peer, connection);
 			};
@@ -127,16 +127,17 @@ namespace ynet
 		{
 			Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 			if (-1 != ::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr))
-				return std::make_unique<SocketConnection>(Address(sockaddr), std::move(socket), SocketConnection::Side::Client, TcpBufferSize);
+				return std::make_unique<SocketConnection>(to_string(sockaddr), std::move(socket), SocketConnection::Side::Client, TcpBufferSize);
 		}
 		return {};
 	}
 
 	std::unique_ptr<ServerBackend> create_tcp_server(uint16_t port)
 	{
+		::sockaddr_storage sockaddr = {};
 		// TODO: Add (optional) IPv6 support.
-		const Address address(Address::Family::IPv4, Address::Special::Any, port);
-		const auto& sockaddr = address.sockaddr();
+		sockaddr.ss_family = AF_INET;
+		reinterpret_cast<::sockaddr_in&>(sockaddr).sin_port = ::htons(port);
 		Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (::bind(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};

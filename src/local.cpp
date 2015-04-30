@@ -2,10 +2,11 @@
 
 #include <cassert>
 #include <cstddef>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include <poll.h>
+#include <sys/socket.h>
 #include <sys/un.h>
 
 #include "backend.h"
@@ -13,6 +14,8 @@
 
 namespace ynet
 {
+	const char LocalAddress[] = "127.0.0.1";
+
 	// All values are arbitrary.
 	const size_t LocalBufferSize = 64 * 1024;
 	const int LocalMaxPendingConnections = 16;
@@ -41,11 +44,7 @@ namespace ynet
 	{
 	public:
 
-		LocalServer(Socket&& socket, const Address& address)
-			: _socket(std::move(socket))
-			, _address(address)
-		{
-		}
+		LocalServer(Socket&& socket): _socket(std::move(socket)) {}
 
 		~LocalServer() override = default;
 
@@ -60,7 +59,7 @@ namespace ynet
 				return pollfd;
 			};
 
-			std::map<int, std::shared_ptr<ConnectionImpl>> connections;
+			std::unordered_map<int, std::shared_ptr<ConnectionImpl>> connections;
 			std::vector<uint8_t> receive_buffer(LocalBufferSize);
 
 			const auto accept = [this, &connections, &callbacks]()
@@ -74,7 +73,7 @@ namespace ynet
 						return false;
 					throw std::system_error(errno, std::generic_category());
 				}
-				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(_address, Socket(peer), SocketConnection::Side::Server, LocalBufferSize));
+				const std::shared_ptr<ConnectionImpl> connection(new SocketConnection(LocalAddress, Socket(peer), SocketConnection::Side::Server, LocalBufferSize));
 				callbacks.on_connected(connection);
 				connections.emplace(peer, connection);
 				return true;
@@ -144,7 +143,6 @@ namespace ynet
 	private:
 
 		const Socket _socket;
-		const Address _address;
 	};
 
 	std::unique_ptr<ConnectionImpl> create_local_connection(uint16_t port)
@@ -153,7 +151,7 @@ namespace ynet
 		Socket socket(sockaddr.first.sun_family, SOCK_STREAM, 0);
 		if (::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr.first), sockaddr.second) == -1)
 			return {};
-		return std::make_unique<SocketConnection>(Address(Address::Family::IPv4, Address::Special::Loopback, port), std::move(socket), SocketConnection::Side::Client, LocalBufferSize);
+		return std::make_unique<SocketConnection>(LocalAddress, std::move(socket), SocketConnection::Side::Client, LocalBufferSize);
 	}
 
 	std::unique_ptr<ServerBackend> create_local_server(uint16_t port)
@@ -164,6 +162,6 @@ namespace ynet
 			return {};
 		if (::listen(socket.get(), LocalMaxPendingConnections) == -1)
 			return {};
-		return std::make_unique<LocalServer>(std::move(socket), Address(Address::Family::IPv4, Address::Special::Loopback, port));
+		return std::make_unique<LocalServer>(std::move(socket));
 	}
 }

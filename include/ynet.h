@@ -80,9 +80,7 @@ namespace ynet
 	{
 	public:
 
-		// All callbacks are called from a server thread.
-		// There may be multiple server threads, but all callbacks for any
-		// single connection are guaranteed to be called from the same thread.
+		// All callbacks are called from the server thread.
 		class Callbacks
 		{
 		public:

@@ -45,7 +45,7 @@ namespace ynet
 	{
 		_callbacks.on_started();
 		std::vector<uint8_t> receive_buffer;
-		for (; ; )
+		for (;;)
 		{
 			int reconnect_timeout = -1;
 			{

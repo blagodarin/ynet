@@ -37,7 +37,7 @@ namespace ynet
 			Server,
 		};
 
-		SocketConnection(const Address& address, Socket&& socket, Side side, size_t receive_buffer_size);
+		SocketConnection(std::string&& address, Socket&& socket, Side side, size_t receive_buffer_size);
 		~SocketConnection() override = default;
 
 		void abort() override;
