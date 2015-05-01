@@ -1,7 +1,10 @@
 #include "socket.h"
 
 #include <cassert>
+#include <unordered_map>
+#include <vector>
 
+#include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -130,5 +133,76 @@ namespace ynet
 		}
 		else
 			return received_size;
+	}
+
+	void SocketServer::run(Callbacks& callbacks)
+	{
+		std::vector<uint8_t> receive_buffer(_buffer_size);
+		std::unordered_map<int, std::shared_ptr<SocketConnection>> connections;
+		for (bool stopping = false; !stopping || !connections.empty(); )
+		{
+			std::vector<::pollfd> pollfds;
+			pollfds.reserve(connections.size() + 1);
+			for (const auto& connection : connections)
+				pollfds.emplace_back(::pollfd{connection.first, POLLIN});
+			if (!stopping)
+				pollfds.emplace_back(::pollfd{_socket.get(), POLLIN});
+			auto count = ::poll(pollfds.data(), pollfds.size(), -1);
+			assert(count > 0);
+			bool do_accept = false;
+			bool do_stop = false;
+			if (!stopping)
+			{
+				const auto revents = pollfds.back().revents;
+				pollfds.pop_back();
+				if (revents)
+				{
+					--count;
+					if (revents == POLLIN)
+						do_accept = true;
+					else
+						do_stop = true;
+				}
+			}
+			for (const auto& pollfd : pollfds)
+			{
+				if (!pollfd.revents)
+					continue;
+				const auto i = connections.find(pollfd.fd);
+				assert(i != connections.end());
+				bool disconnected = pollfd.revents & (POLLHUP | POLLERR | POLLNVAL);
+				if (pollfd.revents & POLLIN)
+					callbacks.on_received(i->second, receive_buffer.data(), receive_buffer.size(), disconnected);
+				if (disconnected)
+				{
+					callbacks.on_disconnected(i->second);
+					connections.erase(i);
+				}
+			}
+			if (do_accept)
+			{
+				const auto& connection = accept(_socket.get(), do_stop);
+				if (connection)
+				{
+					callbacks.on_connected(connection);
+					connections.emplace(connection->socket(), connection);
+				}
+			}
+			if (do_stop)
+			{
+				stopping = true;
+				for (const auto& connection : connections)
+					connection.second->close();
+				// TODO: Consider aborting the connection here instead of gracefully closing it.
+				// The current implementation hangs if the client is constantly sending us data
+				// and doesn't check whether the server has gracefully closed the connection.
+			}
+		}
+		assert(connections.empty());
+	}
+
+	void SocketServer::shutdown()
+	{
+		::shutdown(_socket.get(), SHUT_RD);
 	}
 }

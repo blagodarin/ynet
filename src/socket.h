@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include "backend.h"
 #include "connection.h"
 
 namespace ynet
@@ -46,6 +47,8 @@ namespace ynet
 		size_t receive(void* data, size_t size, bool* disconnected) override;
 		size_t receive_buffer_size() const override { return _receive_buffer_size; }
 
+		int socket() const { return _socket.get(); }
+
 	private:
 
 		std::mutex _mutex;
@@ -54,5 +57,23 @@ namespace ynet
 		const size_t _receive_buffer_size;
 		bool _closed = false;
 		bool _aborted = false;
+	};
+
+	class SocketServer : public ServerBackend
+	{
+	public:
+
+		SocketServer(Socket&& socket, size_t buffer_size): _socket(std::move(socket)), _buffer_size(buffer_size) {}
+		~SocketServer() override = default;
+
+		void run(Callbacks& callbacks) final;
+		void shutdown() final;
+
+		virtual std::shared_ptr<SocketConnection> accept(int socket, bool& shutdown) = 0;
+
+	private:
+
+		const Socket _socket;
+		const size_t _buffer_size;
 	};
 }
