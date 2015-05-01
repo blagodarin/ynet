@@ -1,7 +1,6 @@
 #include "tcp.h"
 
 #include <cassert>
-#include <cstring>
 #include <unordered_map>
 #include <vector>
 
@@ -27,15 +26,6 @@ namespace ynet
 
 		void run(ServerBackend::Callbacks& callbacks) override
 		{
-			const auto make_pollfd = [](int socket)
-			{
-				::pollfd pollfd;
-				::memset(&pollfd, 0, sizeof pollfd);
-				pollfd.fd = socket;
-				pollfd.events = POLLIN;
-				return pollfd;
-			};
-
 			std::unordered_map<int, std::shared_ptr<ConnectionImpl>> connections;
 			std::vector<uint8_t> receive_buffer(TcpBufferSize);
 
@@ -60,9 +50,9 @@ namespace ynet
 				std::vector<::pollfd> pollfds;
 				pollfds.reserve(connections.size() + 1);
 				for (const auto& connection : connections)
-					pollfds.emplace_back(make_pollfd(connection.first));
+					pollfds.emplace_back(::pollfd{connection.first, POLLIN});
 				if (!stopping)
-					pollfds.emplace_back(make_pollfd(_socket.get()));
+					pollfds.emplace_back(::pollfd{_socket.get(), POLLIN});
 				auto count = ::poll(pollfds.data(), pollfds.size(), -1);
 				assert(count > 0);
 				bool do_accept = false;

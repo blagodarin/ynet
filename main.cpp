@@ -9,7 +9,9 @@ public:
 	Client(const std::string& host, uint16_t port)
 		: _host(host)
 		, _port(port)
-		, _client(ynet::Client::create_tcp(*this, _host, _port)) {}
+		, _client(ynet::Client::create_tcp(*this, _host, _port))
+	{
+	}
 
 private:
 
@@ -60,7 +62,10 @@ class Server : public ynet::Server::Callbacks
 {
 public:
 
-	Server(uint16_t port): _server(ynet::Server::create_tcp(*this, port)) {}
+	Server(uint16_t port)
+		: _server(ynet::Server::create_tcp(*this, port))
+	{
+	}
 
 private:
 
@@ -119,7 +124,7 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		std::cerr << "Usage:\n\tynet HOST PORT\n\tynet PORT" << std::endl;
+		std::cerr << "Usage:\n\tynet-tcp HOST PORT\n\tynet-tcp PORT" << std::endl;
 		return 1;
 	}
 }

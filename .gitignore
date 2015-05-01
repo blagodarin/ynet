@@ -4,4 +4,4 @@ CMakeFiles
 libynet.a
 Makefile
 ynet-benchmark
-ynet-test
+ynet-tcp

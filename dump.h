@@ -17,7 +17,6 @@ namespace
 			::memcpy(buffer, data, part_size);
 			data += part_size;
 			size -= part_size;
-
 			std::cout << std::hex << "\t" << std::setfill('0');
 			for (size_t i = 0; i < part_size; ++i)
 			{
@@ -31,11 +30,5 @@ namespace
 				std::cout << buffer[i];
 			std::cout << std::dec << std::endl;
 		}
-	}
-
-	template <class T>
-	void dump(const T& t)
-	{
-		dump(reinterpret_cast<const char*>(&t), sizeof t);
 	}
 }

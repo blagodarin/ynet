@@ -21,10 +21,6 @@ add_library(ynet
 
 link_libraries(ynet)
 
-add_executable(ynet-test
-	main.cpp
-	)
-
 add_executable(ynet-benchmark
 	benchmark/benchmark.cpp
 	benchmark/connect_disconnect.cpp
@@ -34,4 +30,8 @@ add_executable(ynet-benchmark
 	benchmark/main.cpp
 	)
 
-set_property(TARGET ynet ynet-benchmark ynet-test PROPERTY CXX_STANDARD 14)
+add_executable(ynet-tcp
+	main.cpp
+	)
+
+set_property(TARGET ynet ynet-benchmark ynet-tcp PROPERTY CXX_STANDARD 14)
