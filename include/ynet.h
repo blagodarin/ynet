@@ -16,13 +16,13 @@ namespace ynet
 		// Aborts the connection.
 		virtual void abort() = 0;
 
-		// Returns the address of the remote party.
+		// Returns the peer address.
 		virtual std::string address() const = 0;
 
 		// Gracefully closes the connection.
 		virtual void close() = 0;
 
-		// Synchronously send a message to the remote party.
+		// Synchronously send a message to the peer.
 		// Returns true if the message has been sent.
 		virtual bool send(const void* data, size_t size) = 0;
 	};
@@ -60,9 +60,8 @@ namespace ynet
 			virtual void on_failed_to_connect(int& reconnect_timeout) = 0;
 		};
 
-		// Creates a local host client.
-		// 'port' serves as a service identifier.
-		static std::unique_ptr<Client> create_local(Callbacks&, uint16_t port);
+		// Creates a local client.
+		static std::unique_ptr<Client> create_local(Callbacks&, const std::string& name);
 
 		// Creates a TCP client.
 		static std::unique_ptr<Client> create_tcp(Callbacks&, const std::string& host, uint16_t port);
@@ -105,9 +104,8 @@ namespace ynet
 			virtual void on_disconnected(const std::shared_ptr<Connection>&) = 0;
 		};
 
-		// Creates a local host server.
-		// 'port' serves as a service identifier.
-		static std::unique_ptr<Server> create_local(Callbacks&, uint16_t port);
+		// Creates a local server.
+		static std::unique_ptr<Server> create_local(Callbacks&, const std::string& name);
 
 		// Creates a TCP server.
 		static std::unique_ptr<Server> create_tcp(Callbacks&, uint16_t port);

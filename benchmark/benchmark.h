@@ -12,12 +12,12 @@ struct BenchmarkLocal
 {
 	static std::unique_ptr<ynet::Client> create_client(ynet::Client::Callbacks& callbacks)
 	{
-		return ynet::Client::create_local(callbacks, 5445);
+		return ynet::Client::create_local(callbacks, "ynet-benchmark");
 	}
 
 	static std::unique_ptr<ynet::Server> create_server(ynet::Server::Callbacks& callbacks)
 	{
-		return ynet::Server::create_local(callbacks, 5445);
+		return ynet::Server::create_local(callbacks, "ynet-benchmark");
 	}
 };
 
