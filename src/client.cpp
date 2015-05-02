@@ -93,5 +93,6 @@ namespace ynet
 			else if (_stopping)
 				break;
 		}
+		_callbacks.on_stopped();
 	}
 }

@@ -14,6 +14,10 @@ namespace ynet
 	{
 	}
 
+	void Client::Callbacks::on_stopped()
+	{
+	}
+
 	std::unique_ptr<Client> Client::create_local(Callbacks& callbacks, const std::string& name)
 	{
 		return std::make_unique<ClientImpl>(callbacks, [name]() { return create_local_connection(name); });

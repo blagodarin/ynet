@@ -5,3 +5,4 @@ libynet.a
 Makefile
 ynet-benchmark
 ynet-tcp
+ynet-tests

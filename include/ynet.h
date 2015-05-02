@@ -58,6 +58,10 @@ namespace ynet
 			// 'reconnect_timeout' should be set to a nonnegative value
 			// to try to reconnect in the specified number of milliseconds.
 			virtual void on_failed_to_connect(int& reconnect_timeout) = 0;
+
+			// Called after any network activity stops.
+			// The default implementation does nothing.
+			virtual void on_stopped();
 		};
 
 		// Creates a local client.
