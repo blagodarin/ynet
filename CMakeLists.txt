@@ -31,7 +31,7 @@ add_executable(ynet-benchmark
 	)
 
 add_executable(ynet-tcp
-	main.cpp
+	examples/tcp.cpp
 	)
 
 set_property(TARGET ynet ynet-benchmark ynet-tcp PROPERTY CXX_STANDARD 14)
