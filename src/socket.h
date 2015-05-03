@@ -67,7 +67,7 @@ namespace ynet
 		~SocketServer() override = default;
 
 		void run(Callbacks& callbacks) final;
-		void shutdown() final;
+		void shutdown(int milliseconds) final;
 
 		virtual std::shared_ptr<SocketConnection> accept(int socket, bool& shutdown) = 0;
 

@@ -3,7 +3,7 @@
 ConnectDisconnectClient::ConnectDisconnectClient(const ClientFactory& factory, int64_t seconds)
 	: BenchmarkClient(factory, seconds)
 {
-	set_disconnect_timeout(-1);
+	set_shutdown_timeout(-1);
 }
 
 void ConnectDisconnectClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)

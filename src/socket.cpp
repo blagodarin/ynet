@@ -181,6 +181,7 @@ namespace ynet
 			}
 			if (do_accept)
 			{
+				assert(!do_stop);
 				const auto& connection = accept(_socket.get(), do_stop);
 				if (connection)
 				{
@@ -193,16 +194,17 @@ namespace ynet
 				stopping = true;
 				for (const auto& connection : connections)
 					connection.second->close();
-				// TODO: Consider aborting the connection here instead of gracefully closing it.
-				// The current implementation hangs if the client is constantly sending us data
-				// and doesn't check whether the server has gracefully closed the connection.
 			}
 		}
 		assert(connections.empty());
 	}
 
-	void SocketServer::shutdown()
+	void SocketServer::shutdown(int milliseconds)
 	{
 		::shutdown(_socket.get(), SHUT_RD);
+		// TODO: Limit the time for the server to shut down.
+		// The current implementation hangs if a client is constantly sending us data
+		// and doesn't check whether the server has gracefully closed the connection,
+		// or doesn't reply to a graceful shutdown request anything at all.
 	}
 }

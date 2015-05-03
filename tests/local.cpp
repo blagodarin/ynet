@@ -6,14 +6,14 @@ const size_t BufferSize = 1024 * 1024;
 
 TEST(Local, Send)
 {
-	auto&& buffer = make_random_buffer(BufferSize);
+	const auto& buffer = make_random_buffer(BufferSize);
 	SendTestServer server(std::bind(ynet::Server::create_local, std::placeholders::_1, "ynet-tests"), buffer);
 	SendTestClient client(std::bind(ynet::Client::create_local, std::placeholders::_1, "ynet-tests"), buffer);
 }
 
 TEST(Local, Receive)
 {
-	auto&& buffer = make_random_buffer(BufferSize);
+	const auto& buffer = make_random_buffer(BufferSize);
 	ReceiveTestServer server(std::bind(ynet::Server::create_local, std::placeholders::_1, "ynet-tests"), buffer);
 	ReceiveTestClient client(std::bind(ynet::Client::create_local, std::placeholders::_1, "ynet-tests"), buffer);
 }

@@ -4,7 +4,7 @@ ExchangeClient::ExchangeClient(const ClientFactory& factory, int64_t seconds, si
 	: BenchmarkClient(factory, seconds)
 	, _buffer(bytes)
 {
-	set_disconnect_timeout(-1);
+	set_shutdown_timeout(-1);
 }
 
 void ExchangeClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)

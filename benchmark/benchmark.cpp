@@ -22,7 +22,7 @@ int64_t BenchmarkClient::run()
 {
 	{
 		const auto client = _factory(*this);
-		client->set_disconnect_timeout(_disconnect_timeout);
+		client->set_shutdown_timeout(_shutdown_timeout);
 		std::unique_lock<std::mutex> lock(_mutex);
 		_stop_condition.wait(lock, [this]() { return _stop_flag; });
 	}

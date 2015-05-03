@@ -3,7 +3,7 @@
 void TestClient::start(const Factory& factory)
 {
 	_client = factory(*this);
-	_client->set_disconnect_timeout(-1);
+	_client->set_shutdown_timeout(-1);
 }
 
 void TestClient::stop()

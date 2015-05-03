@@ -2,11 +2,12 @@
 
 #include <cassert>
 
+#include "backend.h"
+
 namespace ynet
 {
 	ServerImpl::ServerImpl(Callbacks& callbacks, const std::function<std::unique_ptr<ServerBackend>()>& factory)
 		: _callbacks(callbacks)
-		, _backend_callbacks(_callbacks)
 		, _factory(factory)
 		, _thread([this]() { run(); })
 	{
@@ -21,7 +22,7 @@ namespace ynet
 			_stopping = true;
 			if (_backend)
 			{
-				_backend->shutdown();
+				_backend->shutdown(_shutdown_timeout);
 				_backend = nullptr;
 			}
 		}
@@ -57,6 +58,7 @@ namespace ynet
 				return;
 		}
 		_callbacks.on_started();
-		backend->run(_backend_callbacks);
+		ServerBackend::Callbacks backend_callbacks(_callbacks);
+		backend->run(backend_callbacks);
 	}
 }

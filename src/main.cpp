@@ -1,5 +1,6 @@
 #include <ynet.h>
 
+#include "backend.h"
 #include "client.h"
 #include "connection.h"
 #include "local.h"

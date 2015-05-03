@@ -26,6 +26,6 @@ namespace ynet
 		virtual ~ServerBackend() = default;
 
 		virtual void run(Callbacks&) = 0;
-		virtual void shutdown() = 0;
+		virtual void shutdown(int milliseconds) = 0;
 	};
 }

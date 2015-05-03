@@ -16,7 +16,7 @@ namespace ynet
 		ClientImpl(Callbacks&, const std::function<std::unique_ptr<ConnectionImpl>()>& factory);
 		~ClientImpl() override;
 
-		void set_disconnect_timeout(int milliseconds) { _disconnect_timeout = milliseconds; }
+		void set_shutdown_timeout(int milliseconds) override { _shutdown_timeout = milliseconds; }
 
 	private:
 
@@ -30,7 +30,7 @@ namespace ynet
 		ConnectionImpl* _connection = nullptr;
 		bool _stopping = false;
 		std::condition_variable _stop_event;
-		int _disconnect_timeout = 0;
+		int _shutdown_timeout = 0;
 		std::condition_variable _disconnect_event;
 		std::thread _thread;
 	};

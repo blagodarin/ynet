@@ -33,6 +33,7 @@ namespace ynet
 	public:
 
 		// All callbacks are called from the client thread.
+		// No client functions may be called from the callbacks.
 		class Callbacks
 		{
 		public:
@@ -75,7 +76,7 @@ namespace ynet
 		// Sets the time to wait for graceful disconnect during client destruction.
 		// A negative number means an infinite timeout.
 		// The default value is zero meaning instant connection reset.
-		virtual void set_disconnect_timeout(int milliseconds) = 0;
+		virtual void set_shutdown_timeout(int milliseconds) = 0;
 	};
 
 	// Network server.
@@ -84,6 +85,7 @@ namespace ynet
 	public:
 
 		// All callbacks are called from the server thread.
+		// No server functions may be called from the callbacks.
 		class Callbacks
 		{
 		public:
@@ -96,6 +98,7 @@ namespace ynet
 			virtual void on_failed_to_start(int& restart_timeout) = 0;
 
 			// Called when the server has started, but before any clients connect.
+			// The default implementation does nothing.
 			virtual void on_started();
 
 			// Called when a client has connected to the server.
@@ -115,5 +118,10 @@ namespace ynet
 		static std::unique_ptr<Server> create_tcp(Callbacks&, uint16_t port);
 
 		virtual ~Server() = default;
+
+		// Sets the time to wait for the clients to shut down gracefully during server destruction.
+		// A negative number means an infinite timeout.
+		// The default value is zero meaning instant shutdown.
+		virtual void set_shutdown_timeout(int milliseconds) = 0;
 	};
 }

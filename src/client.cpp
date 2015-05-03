@@ -23,14 +23,14 @@ namespace ynet
 			_stopping = true;
 			if (_connection)
 			{
-				if (_disconnect_timeout == 0)
+				if (_shutdown_timeout == 0)
 					_connection->abort();
 				else
 				{
 					_connection->close();
-					if (_disconnect_timeout > 0)
+					if (_shutdown_timeout > 0)
 					{
-						if (!_disconnect_event.wait_for(lock, std::chrono::milliseconds(_disconnect_timeout), [this]() { return !_connection; }))
+						if (!_disconnect_event.wait_for(lock, std::chrono::milliseconds(_shutdown_timeout), [this]() { return !_connection; }))
 							_connection->abort();
 					}
 				}
