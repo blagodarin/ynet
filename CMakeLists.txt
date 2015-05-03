@@ -43,3 +43,7 @@ add_executable(ynet-tests
 target_link_libraries(ynet-tests gtest gtest_main)
 
 set_property(TARGET ynet ynet-benchmark ynet-tcp ynet-tests PROPERTY CXX_STANDARD 14)
+
+# Unfortunately CTest consumes the test output,
+# and there is no way to retrieve it in its original form.
+add_custom_target(check ynet-tests)
