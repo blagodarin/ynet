@@ -8,7 +8,7 @@ namespace ynet
 	{
 		for (;;)
 		{
-			const size_t size = static_cast<ConnectionImpl*>(connection.get())->receive(buffer, buffer_size, &disconnected);
+			const auto size = static_cast<ConnectionImpl*>(connection.get())->receive(buffer, buffer_size, &disconnected);
 			if (size > 0)
 				_callbacks.on_received(connection, buffer, size);
 			if (size < buffer_size)

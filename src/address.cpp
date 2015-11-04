@@ -57,19 +57,22 @@ namespace ynet
 
 	std::string to_string(const ::sockaddr_storage& sockaddr)
 	{
+		// Windows requires non-const inet_ntop address argument.
 		switch (sockaddr.ss_family)
 		{
 		case AF_INET:
 			{
 				char buffer[INET_ADDRSTRLEN];
-				if (!::inet_ntop(AF_INET, &reinterpret_cast<const ::sockaddr_in&>(sockaddr).sin_addr, buffer, INET_ADDRSTRLEN))
+				auto address = reinterpret_cast<const ::sockaddr_in&>(sockaddr).sin_addr;
+				if (!::inet_ntop(AF_INET, &address, buffer, INET_ADDRSTRLEN))
 					throw std::system_error(errno, std::generic_category());
 				return buffer;
 			}
 		case AF_INET6:
 			{
 				char buffer[INET6_ADDRSTRLEN];
-				if (!::inet_ntop(AF_INET6, &reinterpret_cast<const ::sockaddr_in6&>(sockaddr).sin6_addr, buffer, INET6_ADDRSTRLEN))
+				auto address = reinterpret_cast<const ::sockaddr_in6&>(sockaddr).sin6_addr;
+				if (!::inet_ntop(AF_INET6, &address, buffer, INET6_ADDRSTRLEN))
 					throw std::system_error(errno, std::generic_category());
 				return buffer;
 			}

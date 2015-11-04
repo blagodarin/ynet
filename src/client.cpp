@@ -64,7 +64,7 @@ namespace ynet
 					_callbacks.on_connected(connection_ptr);
 					for (;;)
 					{
-						const size_t size = _connection->receive(receive_buffer.data(), receive_buffer.size(), nullptr);
+						const auto size = _connection->receive(receive_buffer.data(), receive_buffer.size(), nullptr);
 						if (size == 0)
 							break;
 						_callbacks.on_received(connection_ptr, receive_buffer.data(), size);
