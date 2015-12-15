@@ -5,14 +5,14 @@
 
 #include <ynet.h>
 
-using ClientFactory = std::function<std::unique_ptr<ynet::Client>(ynet::Client::Callbacks&)>;
+using ClientFactory = std::function<std::unique_ptr<ynet::Client>(ynet::Client::Callbacks&, const ynet::Client::Options&)>;
 using ServerFactory = std::function<std::unique_ptr<ynet::Server>(ynet::Server::Callbacks&)>;
 
 struct BenchmarkLocal
 {
-	static std::unique_ptr<ynet::Client> create_client(ynet::Client::Callbacks& callbacks)
+	static std::unique_ptr<ynet::Client> create_client(ynet::Client::Callbacks& callbacks, const ynet::Client::Options& options)
 	{
-		return ynet::Client::create_local(callbacks, "ynet-benchmark");
+		return ynet::Client::create_local(callbacks, "ynet-benchmark", options);
 	}
 
 	static std::unique_ptr<ynet::Server> create_server(ynet::Server::Callbacks& callbacks)
@@ -23,9 +23,9 @@ struct BenchmarkLocal
 
 struct BenchmarkTcp
 {
-	static std::unique_ptr<ynet::Client> create_client(ynet::Client::Callbacks& callbacks)
+	static std::unique_ptr<ynet::Client> create_client(ynet::Client::Callbacks& callbacks, const ynet::Client::Options& options)
 	{
-		return ynet::Client::create_tcp(callbacks, "localhost", 5445);
+		return ynet::Client::create_tcp(callbacks, "localhost", 5445, options);
 	}
 
 	static std::unique_ptr<ynet::Server> create_server(ynet::Server::Callbacks& callbacks)
@@ -37,25 +37,22 @@ struct BenchmarkTcp
 class BenchmarkClient : public ynet::Client::Callbacks
 {
 public:
-
-	BenchmarkClient(const ClientFactory&, int64_t seconds);
+	BenchmarkClient(const ClientFactory&, const ynet::Client::Options&, int64_t seconds);
 
 	int64_t run();
 
 protected:
-
 	void discard_benchmark();
 	void set_shutdown_timeout(int milliseconds) { _shutdown_timeout = milliseconds; }
 	void start_benchmark();
 	bool stop_benchmark();
 
 private:
-
 	void on_started() final;
 
 private:
-
 	const ClientFactory _factory;
+	const ynet::Client::Options _options;
 	std::mutex _mutex;
 	bool _stop_flag = false;
 	std::condition_variable _stop_condition;
@@ -70,20 +67,16 @@ private:
 class BenchmarkServer : public ynet::Server::Callbacks
 {
 public:
-
 	BenchmarkServer(const ServerFactory&);
 
 protected:
-
 	void stop();
 
 private:
-
 	void on_failed_to_start(int&) final;
 	void on_started() final;
 
 private:
-
 	std::mutex _mutex;
 	bool _server_started = false;
 	std::condition_variable _server_started_condition;

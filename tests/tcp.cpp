@@ -7,13 +7,13 @@ const size_t BufferSize = 1024 * 1024;
 TEST(Tcp, Send)
 {
 	const auto& buffer = make_random_buffer(BufferSize);
-	SendTestServer server(std::bind(ynet::Server::create_tcp, std::placeholders::_1, 20000), buffer);
-	SendTestClient client(std::bind(ynet::Client::create_tcp, std::placeholders::_1, "localhost", 20000), buffer);
+	SendTestServer server(std::bind(ynet::Server::create_tcp, std::placeholders::_1, 20000, std::placeholders::_2), buffer);
+	SendTestClient client(std::bind(ynet::Client::create_tcp, std::placeholders::_1, "localhost", 20000, std::placeholders::_2), buffer);
 }
 
 TEST(Tcp, Receive)
 {
 	const auto& buffer = make_random_buffer(BufferSize);
-	ReceiveTestServer server(std::bind(ynet::Server::create_tcp, std::placeholders::_1, 20001), buffer);
-	ReceiveTestClient client(std::bind(ynet::Client::create_tcp, std::placeholders::_1, "localhost", 20001), buffer);
+	ReceiveTestServer server(std::bind(ynet::Server::create_tcp, std::placeholders::_1, 20001, std::placeholders::_2), buffer);
+	ReceiveTestClient client(std::bind(ynet::Client::create_tcp, std::placeholders::_1, "localhost", 20001, std::placeholders::_2), buffer);
 }

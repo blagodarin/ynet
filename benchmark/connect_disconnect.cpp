@@ -1,14 +1,23 @@
 #include "connect_disconnect.h"
 
-ConnectDisconnectClient::ConnectDisconnectClient(const ClientFactory& factory, int64_t seconds)
-	: BenchmarkClient(factory, seconds)
+namespace
 {
-	set_shutdown_timeout(-1);
+	const auto client_options = []
+	{
+		ynet::Client::Options options;
+		options.shutdown_timeout = -1;
+		return options;
+	}();
+}
+
+ConnectDisconnectClient::ConnectDisconnectClient(const ClientFactory& factory, int64_t seconds)
+	: BenchmarkClient(factory, client_options, seconds)
+{
 }
 
 void ConnectDisconnectClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)
 {
-	connection->close();
+	connection->shutdown();
 }
 
 void ConnectDisconnectClient::on_received(const std::shared_ptr<ynet::Connection>&, const void*, size_t)

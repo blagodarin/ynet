@@ -55,7 +55,6 @@ namespace ynet
 	class LocalServer : public SocketServer
 	{
 	public:
-
 		LocalServer(Socket&& socket): SocketServer(std::move(socket), LocalBufferSize) {}
 		~LocalServer() override = default;
 

@@ -11,7 +11,6 @@ namespace ynet
 		class Callbacks
 		{
 		public:
-
 			Callbacks(Server::Callbacks& callbacks): _callbacks(callbacks) {}
 
 			void on_connected(const std::shared_ptr<Connection>& connection) { _callbacks.on_connected(connection); }
@@ -19,7 +18,6 @@ namespace ynet
 			void on_disconnected(const std::shared_ptr<Connection>& connection) { _callbacks.on_disconnected(connection); }
 
 		private:
-
 			Server::Callbacks& _callbacks;
 		};
 

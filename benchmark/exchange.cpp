@@ -1,10 +1,19 @@
 #include "exchange.h"
 
+namespace
+{
+	const auto client_options = []
+	{
+		ynet::Client::Options options;
+		options.shutdown_timeout = -1;
+		return options;
+	}();
+}
+
 ExchangeClient::ExchangeClient(const ClientFactory& factory, int64_t seconds, size_t bytes)
-	: BenchmarkClient(factory, seconds)
+	: BenchmarkClient(factory, client_options, seconds)
 	, _buffer(bytes)
 {
-	set_shutdown_timeout(-1);
 }
 
 void ExchangeClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)

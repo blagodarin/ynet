@@ -2,8 +2,9 @@
 
 void TestClient::start(const Factory& factory)
 {
-	_client = factory(*this);
-	_client->set_shutdown_timeout(-1);
+	ynet::Client::Options options;
+	options.shutdown_timeout = -1;
+	_client = factory(*this, options);
 }
 
 void TestClient::stop()
@@ -32,7 +33,9 @@ void TestClient::on_stopped()
 
 void TestServer::start(const Factory& factory)
 {
-	_server = factory(*this);
+	ynet::Server::Options options;
+	options.shutdown_timeout = -1;
+	_server = factory(*this, options);
 	std::unique_lock<std::mutex> lock(_mutex);
 	_start_condition.wait(lock, [this]() { return _started; });
 }
@@ -106,7 +109,7 @@ void SendTestServer::on_received(const std::shared_ptr<ynet::Connection>& connec
 	::memcpy(&_received[_received_size], static_cast<const uint8_t*>(data), size);
 	_received_size += size;
 	if (_received_size == _received.size())
-		connection->close();
+		connection->shutdown();
 }
 
 void SendTestServer::on_disconnected(const std::shared_ptr<ynet::Connection>&)
@@ -158,7 +161,7 @@ ReceiveTestServer::~ReceiveTestServer()
 void ReceiveTestServer::on_connected(const std::shared_ptr<ynet::Connection>& connection)
 {
 	EXPECT_TRUE(connection->send(_buffer.data(), _buffer.size()));
-	connection->close();
+	connection->shutdown();
 }
 
 void ReceiveTestServer::on_received(const std::shared_ptr<ynet::Connection>&, const void*, size_t)

@@ -12,25 +12,21 @@ namespace ynet
 	class ClientImpl : public Client
 	{
 	public:
-
-		ClientImpl(Callbacks&, const std::function<std::unique_ptr<ConnectionImpl>()>& factory);
+		ClientImpl(Callbacks&, const Options&, const std::function<std::unique_ptr<ConnectionImpl>()>& factory);
 		~ClientImpl() override;
 
-		void set_shutdown_timeout(int milliseconds) override { _shutdown_timeout = milliseconds; }
-
 	private:
-
 		void run();
 
 	private:
 	
 		Callbacks& _callbacks;
+		const Options _options;
 		const std::function<std::unique_ptr<ConnectionImpl>()> _factory;
 		std::mutex _mutex;
 		ConnectionImpl* _connection = nullptr;
 		bool _stopping = false;
 		std::condition_variable _stop_event;
-		int _shutdown_timeout = 0;
 		std::condition_variable _disconnect_event;
 		std::thread _thread;
 	};

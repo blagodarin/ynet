@@ -54,7 +54,7 @@ namespace ynet
 		}
 	}
 
-	void SocketConnection::close()
+	void SocketConnection::shutdown()
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
 		if (!_closed)
@@ -193,7 +193,7 @@ namespace ynet
 			{
 				stopping = true;
 				for (const auto& connection : connections)
-					connection.second->close();
+					connection.second->shutdown();
 			}
 		}
 		assert(connections.empty());

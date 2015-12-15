@@ -12,8 +12,9 @@ namespace
 	}
 }
 
-BenchmarkClient::BenchmarkClient(const ClientFactory& factory, int64_t seconds)
+BenchmarkClient::BenchmarkClient(const ClientFactory& factory, const ynet::Client::Options& options, int64_t seconds)
 	: _factory(factory)
+	, _options(options)
 	, _benchmark_time(seconds * 1000)
 {
 }
@@ -21,8 +22,7 @@ BenchmarkClient::BenchmarkClient(const ClientFactory& factory, int64_t seconds)
 int64_t BenchmarkClient::run()
 {
 	{
-		const auto client = _factory(*this);
-		client->set_shutdown_timeout(_shutdown_timeout);
+		const auto client = _factory(*this, _options);
 		std::unique_lock<std::mutex> lock(_mutex);
 		_stop_condition.wait(lock, [this]() { return _stop_flag; });
 	}

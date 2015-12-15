@@ -13,18 +13,21 @@ namespace ynet
 
 		virtual ~Connection() = default;
 
-		// Aborts the connection.
+		// Aborts the connection, interrupting all active IO operations, if any,
+		// and preventing new ones from starting.
 		virtual void abort() = 0;
 
-		// Returns the peer address.
+		// Returns the peer IP address.
 		virtual std::string address() const = 0;
 
-		// Gracefully closes the connection.
-		virtual void close() = 0;
-
-		// Synchronously send a message to the peer.
-		// Returns true if the message has been sent.
+		// Synchronously sends a block of data to the peer.
+		// Returns true if the entire block was sent.
 		virtual bool send(const void* data, size_t size) = 0;
+
+		// Initiates a graceful shutdown.
+		// The connection can't be used to send data after this function is called,
+		// but data may still be received before the connection terminates.
+		virtual void shutdown() = 0;
 	};
 
 	// Network client.
@@ -33,14 +36,11 @@ namespace ynet
 	public:
 
 		// All callbacks are called from the client thread.
-		// No client functions may be called from the callbacks.
-		class Callbacks
+		struct Callbacks
 		{
-		public:
-
 			virtual ~Callbacks() = default;
 
-			// Called before any network activity starts.
+			// Called just before the network activity starts.
 			// The default implementation does nothing.
 			virtual void on_started();
 
@@ -60,23 +60,26 @@ namespace ynet
 			// to try to reconnect in the specified number of milliseconds.
 			virtual void on_failed_to_connect(int& reconnect_timeout) = 0;
 
-			// Called after any network activity stops.
+			// Called right after the network activity stops.
 			// The default implementation does nothing.
 			virtual void on_stopped();
 		};
 
+		// Client options.
+		struct Options
+		{
+			// Number of milliseconds to wait for graceful disconnect during client destruction.
+			// A negative value means infinite timeout. Zero means instant connection reset.
+			int shutdown_timeout = 0;
+		};
+
 		// Creates a local client.
-		static std::unique_ptr<Client> create_local(Callbacks&, const std::string& name);
+		static std::unique_ptr<Client> create_local(Callbacks&, const std::string& name, const Options& = {});
 
 		// Creates a TCP client.
-		static std::unique_ptr<Client> create_tcp(Callbacks&, const std::string& host, uint16_t port);
+		static std::unique_ptr<Client> create_tcp(Callbacks&, const std::string& host, uint16_t port, const Options& = {});
 
 		virtual ~Client() = default;
-
-		// Sets the time to wait for graceful disconnect during client destruction.
-		// A negative number means an infinite timeout.
-		// The default value is zero meaning instant connection reset.
-		virtual void set_shutdown_timeout(int milliseconds) = 0;
 	};
 
 	// Network server.
@@ -86,10 +89,8 @@ namespace ynet
 
 		// All callbacks are called from the server thread.
 		// No server functions may be called from the callbacks.
-		class Callbacks
+		struct Callbacks
 		{
-		public:
-
 			virtual ~Callbacks() = default;
 
 			// Called if the server has failed to start.
@@ -111,17 +112,20 @@ namespace ynet
 			virtual void on_disconnected(const std::shared_ptr<Connection>&) = 0;
 		};
 
+		// Server options.
+		struct Options
+		{
+			// Number of milliseconds to wait for clients to shut down gracefully during server destruction.
+			// A negative value means infinite timeout. Zero means instant shutdown.
+			int shutdown_timeout = 0;
+		};
+
 		// Creates a local server.
-		static std::unique_ptr<Server> create_local(Callbacks&, const std::string& name);
+		static std::unique_ptr<Server> create_local(Callbacks&, const std::string& name, const Options& = {});
 
 		// Creates a TCP server.
-		static std::unique_ptr<Server> create_tcp(Callbacks&, uint16_t port);
+		static std::unique_ptr<Server> create_tcp(Callbacks&, uint16_t port, const Options& = {});
 
 		virtual ~Server() = default;
-
-		// Sets the time to wait for the clients to shut down gracefully during server destruction.
-		// A negative number means an infinite timeout.
-		// The default value is zero meaning instant shutdown.
-		virtual void set_shutdown_timeout(int milliseconds) = 0;
 	};
 }

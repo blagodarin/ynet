@@ -42,8 +42,9 @@ namespace ynet
 		~SocketConnection() override = default;
 
 		void abort() override;
-		void close() override;
 		bool send(const void* data, size_t size) override;
+		void shutdown() override;
+
 		size_t receive(void* data, size_t size, bool* disconnected) override;
 		size_t receive_buffer_size() const override { return _receive_buffer_size; }
 
@@ -63,7 +64,7 @@ namespace ynet
 	{
 	public:
 
-		SocketServer(Socket&& socket, size_t buffer_size): _socket(std::move(socket)), _buffer_size(buffer_size) {}
+		SocketServer(Socket&& socket, size_t buffer_size) : _socket(std::move(socket)), _buffer_size(buffer_size) {}
 		~SocketServer() override = default;
 
 		void run(Callbacks& callbacks) final;

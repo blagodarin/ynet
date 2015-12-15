@@ -1,10 +1,19 @@
 #include "receive.h"
 
+namespace
+{
+	const auto client_options = []
+	{
+		ynet::Client::Options options;
+		options.shutdown_timeout = 0; // The server sends us data as long as it can, so infinite wait for graceful disconnect is not an option.
+		return options;
+	}();
+}
+
 ReceiveClient::ReceiveClient(const ClientFactory& factory, int64_t seconds, size_t bytes)
-	: BenchmarkClient(factory, seconds)
+	: BenchmarkClient(factory, client_options, seconds)
 	, _bytes_per_mark(bytes)
 {
-	// The server sends us data as long as it can, so infinite wait for graceful disconnect is not an option.
 }
 
 void ReceiveClient::on_connected(const std::shared_ptr<ynet::Connection>& connection)
@@ -16,7 +25,7 @@ void ReceiveClient::on_received(const std::shared_ptr<ynet::Connection>& connect
 {
 	if (stop_benchmark())
 	{
-		connection->close();
+		connection->shutdown();
 		return;
 	}
 	_bytes += size;

@@ -16,8 +16,7 @@ namespace ynet
 	class TcpServer : public SocketServer
 	{
 	public:
-
-		TcpServer(Socket&& socket): SocketServer(std::move(socket), TcpBufferSize) {}
+		TcpServer(Socket&& socket) : SocketServer(std::move(socket), TcpBufferSize) {}
 		~TcpServer() override = default;
 
 		std::shared_ptr<SocketConnection> accept(int socket, bool& shutdown) override

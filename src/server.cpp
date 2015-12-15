@@ -6,8 +6,9 @@
 
 namespace ynet
 {
-	ServerImpl::ServerImpl(Callbacks& callbacks, const std::function<std::unique_ptr<ServerBackend>()>& factory)
+	ServerImpl::ServerImpl(Callbacks& callbacks, const Options& options, const std::function<std::unique_ptr<ServerBackend>()>& factory)
 		: _callbacks(callbacks)
+		, _options(options)
 		, _factory(factory)
 		, _thread([this]() { run(); })
 	{
@@ -22,7 +23,7 @@ namespace ynet
 			_stopping = true;
 			if (_backend)
 			{
-				_backend->shutdown(_shutdown_timeout);
+				_backend->shutdown(_options.shutdown_timeout);
 				_backend = nullptr;
 			}
 		}

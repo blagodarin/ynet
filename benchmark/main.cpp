@@ -220,30 +220,30 @@ int main(int argc, char** argv)
 	}
 	if (options.count("local"))
 	{
-		std::vector<BenchmarkResults> base;
+		std::vector<BenchmarkResults> tcp;
 		std::vector<BenchmarkResults> local;
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_send<BenchmarkTcp>(test_seconds, 1 << i));
+			tcp.emplace_back(benchmark_send<BenchmarkTcp>(test_seconds, 1 << i));
 			local.emplace_back(benchmark_send<BenchmarkLocal>(test_seconds, 1 << i));
 		}
-		print_compared(base, local);
-		base.clear();
+		print_compared(tcp, local);
+		tcp.clear();
 		local.clear();
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_receive<BenchmarkTcp>(test_seconds, 1 << i));
+			tcp.emplace_back(benchmark_receive<BenchmarkTcp>(test_seconds, 1 << i));
 			local.emplace_back(benchmark_receive<BenchmarkLocal>(test_seconds, 1 << i));
 		}
-		print_compared(base, local);
-		base.clear();
+		print_compared(tcp, local);
+		tcp.clear();
 		local.clear();
 		for (int i = 0; i <= 29; ++i)
 		{
-			base.emplace_back(benchmark_exchange<BenchmarkTcp>(test_seconds, 1 << i));
+			tcp.emplace_back(benchmark_exchange<BenchmarkTcp>(test_seconds, 1 << i));
 			local.emplace_back(benchmark_exchange<BenchmarkLocal>(test_seconds, 1 << i));
 		}
-		print_compared(base, local);
+		print_compared(tcp, local);
 	}
 	return 0;
 }
