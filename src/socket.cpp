@@ -46,20 +46,19 @@ namespace ynet
 	void SocketConnection::abort()
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
-		if (!_aborted)
+		if (_state != State::Closed)
 		{
-			_aborted = true;
-			::shutdown(_socket.get(), _closed ? SHUT_RD : SHUT_RDWR);
-			_closed = true;
+			::shutdown(_socket.get(), _state == State::Closing ? SHUT_RD : SHUT_RDWR);
+			_state = State::Closed;
 		}
 	}
 
 	void SocketConnection::shutdown()
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
-		if (!_closed)
+		if (_state == State::Open)
 		{
-			_closed = true;
+			_state = State::Closing;
 			::shutdown(_socket.get(), SHUT_WR);
 		}
 	}
@@ -67,7 +66,7 @@ namespace ynet
 	bool SocketConnection::send(const void* data, size_t size)
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
-		if (_closed)
+		if (_state != State::Open)
 			return false;
 		for (size_t offset = 0; offset < size; )
 		{
@@ -78,8 +77,7 @@ namespace ynet
 				{
 				case ECONNRESET:
 				case EPIPE:
-					_closed = true;
-					_aborted = true;
+					_state = State::Closed;
 					return false;
 				default:
 					throw std::system_error(errno, std::generic_category());

@@ -24,7 +24,7 @@ int64_t BenchmarkClient::run()
 	{
 		const auto client = _factory(*this, _options);
 		std::unique_lock<std::mutex> lock(_mutex);
-		_stop_condition.wait(lock, [this]() { return _stop_flag; });
+		_stop_condition.wait(lock, [this]{ return _stop_flag; });
 	}
 	return _discarded ? -1 : _elapsed_time;
 }
@@ -70,7 +70,7 @@ BenchmarkServer::BenchmarkServer(const ServerFactory& factory)
 	: _server(factory(*this))
 {
 	std::unique_lock<std::mutex> lock(_mutex);
-	_server_started_condition.wait(lock, [this]() { return _server_started; });
+	_server_started_condition.wait(lock, [this]{ return _server_started; });
 }
 
 void BenchmarkServer::stop()

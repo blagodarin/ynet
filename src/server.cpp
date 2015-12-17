@@ -52,7 +52,7 @@ namespace ynet
 			std::unique_lock<std::mutex> lock(_mutex);
 			if (restart_timeout > 0)
 			{
-				if (_stop_event.wait_for(lock, std::chrono::milliseconds(restart_timeout), [this]() { return _stopping; }))
+				if (_stop_event.wait_for(lock, std::chrono::milliseconds(restart_timeout), [this]{ return _stopping; }))
 					return;
 			}
 			else if (_stopping)
