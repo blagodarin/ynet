@@ -16,13 +16,13 @@ namespace ynet
 	class TcpServer : public SocketServer
 	{
 	public:
-		TcpServer(Socket&& socket) : SocketServer(std::move(socket), TcpBufferSize) {}
+		TcpServer(Socket&& socket) : SocketServer{std::move(socket), TcpBufferSize} {}
 		~TcpServer() override = default;
 
 		std::shared_ptr<SocketConnection> accept(int socket, bool& shutdown) override
 		{
 			::sockaddr_storage sockaddr = {};
-			auto sockaddr_size = sizeof sockaddr;
+			auto sockaddr_size = static_cast<socklen_t>(sizeof sockaddr);
 			const auto peer = ::accept(socket, reinterpret_cast<::sockaddr*>(&sockaddr), &sockaddr_size);
 			if (peer != -1)
 				return std::make_shared<SocketConnection>(to_string(sockaddr), Socket(peer), SocketConnection::Side::Server, TcpBufferSize);
@@ -36,24 +36,24 @@ namespace ynet
 		};
 	};
 
-	std::unique_ptr<ConnectionImpl> create_tcp_connection(const std::string& host, uint16_t port)
+	std::unique_ptr<ConnectionImpl> create_tcp_connection(const std::string& host, std::uint16_t port)
 	{
 		for (const auto& sockaddr : resolve(host, port))
 		{
-			Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
+			Socket socket{sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP};
 			if (-1 != ::connect(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr))
 				return std::make_unique<SocketConnection>(to_string(sockaddr), std::move(socket), SocketConnection::Side::Client, TcpBufferSize);
 		}
 		return {};
 	}
 
-	std::unique_ptr<ServerBackend> create_tcp_server(uint16_t port)
+	std::unique_ptr<ServerBackend> create_tcp_server(std::uint16_t port)
 	{
 		::sockaddr_storage sockaddr = {};
 		// TODO: Add (optional) IPv6 support.
 		sockaddr.ss_family = AF_INET;
 		reinterpret_cast<::sockaddr_in&>(sockaddr).sin_port = ::htons(port);
-		Socket socket(sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP);
+		Socket socket{sockaddr.ss_family, SOCK_STREAM, IPPROTO_TCP};
 		if (::bind(socket.get(), reinterpret_cast<const ::sockaddr*>(&sockaddr), sizeof sockaddr) == -1)
 			return {};
 		if (::listen(socket.get(), TcpMaxPendingConnections) == -1)

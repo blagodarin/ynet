@@ -71,6 +71,8 @@ namespace ynet
 			// Number of milliseconds to wait for graceful disconnect during client destruction.
 			// A negative value means infinite timeout. Zero means instant connection reset.
 			int shutdown_timeout = 0;
+
+			constexpr Options() noexcept {}
 		};
 
 		// Creates a local client.
@@ -118,6 +120,8 @@ namespace ynet
 			// Number of milliseconds to wait for clients to shut down gracefully during server destruction.
 			// A negative value means infinite timeout. Zero means instant shutdown.
 			int shutdown_timeout = 0;
+
+			constexpr Options() noexcept {}
 		};
 
 		// Creates a local server.

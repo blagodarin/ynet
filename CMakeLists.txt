@@ -1,9 +1,14 @@
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1)
 
 project(ynet CXX)
 
+find_package(GTest REQUIRED)
+find_package(Threads REQUIRED)
+
+set(CMAKE_CXX_STANDARD 14)
+
 if(CMAKE_COMPILER_IS_GNUCXX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall")
+	add_compile_options(-Wall)
 endif()
 
 include_directories(include)
@@ -18,6 +23,8 @@ add_library(ynet
 	src/socket.cpp
 	src/tcp.cpp
 	)
+
+target_link_libraries(ynet Threads::Threads)
 
 link_libraries(ynet)
 
@@ -40,9 +47,7 @@ add_executable(ynet-tests
 	tests/tcp.cpp
 	tests/utils.cpp
 	)
-target_link_libraries(ynet-tests gtest gtest_main)
-
-set_property(TARGET ynet ynet-benchmark ynet-tcp ynet-tests PROPERTY CXX_STANDARD 14)
+target_link_libraries(ynet-tests GTest::GTest GTest::Main)
 
 # Unfortunately CTest consumes the test output,
 # and there is no way to retrieve it in its original form.

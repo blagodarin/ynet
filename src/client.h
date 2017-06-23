@@ -19,7 +19,6 @@ namespace ynet
 		void run();
 
 	private:
-	
 		Callbacks& _callbacks;
 		const Options _options;
 		const std::function<std::unique_ptr<ConnectionImpl>()> _factory;
